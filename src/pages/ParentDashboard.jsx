@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import DashboardLayout from "../components/DashboardLayout";
 
 function ParentDashboard() {
   const [consent, setConsent] = useState(false);
   const [latest, setLatest] = useState(null);
+  const [checkins, setCheckins] = useState([]);
 
   useEffect(() => {
     const parentConsent =
@@ -10,128 +13,231 @@ function ParentDashboard() {
 
     setConsent(parentConsent);
 
-    const checkins =
-      JSON.parse(
-        localStorage.getItem("wellbeingCheckins")
-      ) || [];
+    const savedCheckins =
+      JSON.parse(localStorage.getItem("wellbeingCheckins")) || [];
 
-    if (checkins.length > 0) {
-      setLatest(checkins[checkins.length - 1]);
+    setCheckins(savedCheckins);
+
+    if (savedCheckins.length > 0) {
+      setLatest(savedCheckins[savedCheckins.length - 1]);
     }
   }, []);
 
+  const getMood = (value) => {
+    const moods = {
+      1: "😊 Very Good",
+      2: "🙂 Good",
+      3: "😐 Okay",
+      4: "😟 Low",
+      5: "😣 Very Low",
+    };
+
+    return moods[value] || "Not available";
+  };
+
+  const getLevel = (value) => {
+    if (value <= 2) return "Low";
+    if (value === 3) return "Moderate";
+    return "High";
+  };
+
+  const getDate = (date) => {
+    if (!date) return "Not available";
+
+    return new Date(date).toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#f5f7fb",
-        padding: "30px",
-        fontFamily: "Arial, sans-serif",
-      }}
-    >
-      <h1>👨‍👩‍👧 Parent Dashboard</h1>
+    <DashboardLayout>
+      <div className="parent-page">
 
-      <p>
-        View your student's wellbeing information
-        according to their privacy preferences.
-      </p>
+        {/* HEADER */}
+        <section className="parent-hero">
+          <div>
+            <span className="page-eyebrow">Parent Portal</span>
 
-      <hr />
+            <h1>Welcome, Parent 👋</h1>
 
-      {!consent ? (
-        <div
-          style={{
-            background: "white",
-            padding: "25px",
-            borderRadius: "15px",
-            boxShadow:
-              "0 3px 10px rgba(0,0,0,0.08)",
-          }}
-        >
-          <h2>🔐 Information Restricted</h2>
+            <p>
+              Stay connected with your student's wellbeing
+              while respecting their privacy.
+            </p>
+          </div>
 
-          <p>
-            The student has not given consent to share
-            wellbeing information with the parent.
-          </p>
+          <div className="parent-hero-icon">
+            👨‍👩‍👧
+          </div>
+        </section>
 
-          <p>
-            Student privacy settings control what
-            information can be viewed.
-          </p>
+        {/* PRIVACY NOTICE */}
+        <div className="parent-privacy-banner">
+          <div className="parent-privacy-icon">🔐</div>
+
+          <div>
+            <strong>Privacy comes first</strong>
+            <p>
+              You can only view information that your student
+              has permitted you to access.
+            </p>
+          </div>
         </div>
-      ) : (
-        <div>
-          <div
-            style={{
-              background: "white",
-              padding: "25px",
-              borderRadius: "15px",
-              marginBottom: "20px",
-              boxShadow:
-                "0 3px 10px rgba(0,0,0,0.08)",
-            }}
-          >
-            <h2>💚 Wellbeing Overview</h2>
 
-            {latest ? (
+        {!consent ? (
+          /* RESTRICTED STATE */
+          <section className="parent-restricted-card">
+            <div className="parent-restricted-icon">
+              🔒
+            </div>
+
+            <h2>Information is currently private</h2>
+
+            <p>
+              Your student has not given consent to share
+              wellbeing information with you at this time.
+            </p>
+
+            <p className="parent-small-text">
+              Their privacy settings control what information
+              parents can access.
+            </p>
+
+            <Link to="/privacy" className="btn-primary">
+              View Privacy Settings
+            </Link>
+          </section>
+        ) : (
+          <>
+            {/* OVERVIEW */}
+            <section className="parent-section">
+              <div className="section-heading">
+                <div>
+                  <span className="page-eyebrow">Latest update</span>
+                  <h2>Wellbeing Overview 💚</h2>
+                </div>
+
+                {latest && (
+                  <span className="parent-date">
+                    {getDate(latest.date)}
+                  </span>
+                )}
+              </div>
+
+              {latest ? (
+                <>
+                  <div className="parent-metrics-grid">
+
+                    <div className="parent-metric-card mood-card">
+                      <span className="metric-icon">😊</span>
+                      <span className="metric-label">Mood</span>
+                      <strong>{getMood(latest.mood)}</strong>
+                      <small>{latest.mood}/5</small>
+                    </div>
+
+                    <div className="parent-metric-card stress-card">
+                      <span className="metric-icon">🌿</span>
+                      <span className="metric-label">Stress</span>
+                      <strong>{getLevel(latest.stress)}</strong>
+                      <small>{latest.stress}/5</small>
+                    </div>
+
+                    <div className="parent-metric-card sleep-card">
+                      <span className="metric-icon">😴</span>
+                      <span className="metric-label">Sleep</span>
+                      <strong>{latest.sleep} hrs</strong>
+                      <small>Last check-in</small>
+                    </div>
+
+                    <div className="parent-metric-card workload-card">
+                      <span className="metric-icon">📚</span>
+                      <span className="metric-label">Workload</span>
+                      <strong>{getLevel(latest.workload)}</strong>
+                      <small>{latest.workload}/5</small>
+                    </div>
+
+                  </div>
+
+                  {/* CHECK-IN SUMMARY */}
+                  <div className="parent-summary-card">
+                    <div>
+                      <span className="page-eyebrow">
+                        Check-in summary
+                      </span>
+
+                      <h3>
+                        Your student completed a wellbeing check-in.
+                      </h3>
+
+                      <p>
+                        This information is shared according to
+                        their consent preferences.
+                      </p>
+                    </div>
+
+                    <div className="parent-summary-count">
+                      <strong>{checkins.length}</strong>
+                      <span>Total check-ins</span>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="parent-empty-card">
+                  <div>🌱</div>
+                  <h3>No wellbeing check-ins yet</h3>
+
+                  <p>
+                    Once your student completes a check-in,
+                    permitted information will appear here.
+                  </p>
+                </div>
+              )}
+            </section>
+
+            {/* SUPPORT CARD */}
+            <section className="parent-support-card">
+              <div className="parent-support-icon">
+                💚
+              </div>
+
               <div>
-                <p>
-                  <strong>Mood:</strong>{" "}
-                  {latest.mood}/5
-                </p>
+                <h2>How you can support</h2>
 
                 <p>
-                  <strong>Stress:</strong>{" "}
-                  {latest.stress}/5
-                </p>
-
-                <p>
-                  <strong>Sleep:</strong>{" "}
-                  {latest.sleep} hours
-                </p>
-
-                <p>
-                  <strong>Academic Workload:</strong>{" "}
-                  {latest.workload}
-                </p>
-
-                <p>
-                  <strong>Last Check-in:</strong>{" "}
-                  {latest.date}
+                  A simple conversation, encouragement, or
+                  listening without judgement can make a big
+                  difference.
                 </p>
               </div>
-            ) : (
-              <p>
-                No wellbeing check-in data available.
-              </p>
-            )}
-          </div>
+            </section>
 
-          <div
-            style={{
-              background: "white",
-              padding: "25px",
-              borderRadius: "15px",
-              boxShadow:
-                "0 3px 10px rgba(0,0,0,0.08)",
-            }}
-          >
-            <h2>🔐 Privacy</h2>
+            {/* PRIVACY */}
+            <section className="parent-section parent-privacy-card">
+              <div className="privacy-card-icon">
+                🔐
+              </div>
 
-            <p>
-              You are viewing only the information
-              permitted by the student's consent settings.
-            </p>
+              <div>
+                <h3>Your privacy agreement</h3>
 
-            <p>
-              Private check-in notes and counselling
-              information are not displayed here.
-            </p>
-          </div>
-        </div>
-      )}
-    </div>
+                <p>
+                  Private check-in notes and counselling
+                  conversations are not displayed on the
+                  parent dashboard.
+                </p>
+
+                <Link to="/privacy" className="text-link">
+                  Review privacy settings →
+                </Link>
+              </div>
+            </section>
+          </>
+        )}
+
+      </div>
+    </DashboardLayout>
   );
 }
 

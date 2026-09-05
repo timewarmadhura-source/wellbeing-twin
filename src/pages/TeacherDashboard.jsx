@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import DashboardLayout from "../components/DashboardLayout";
 
 function TeacherDashboard() {
   const [consent, setConsent] = useState(false);
@@ -12,9 +14,7 @@ function TeacherDashboard() {
     setConsent(teacherConsent);
 
     const savedWorkloads =
-      JSON.parse(
-        localStorage.getItem("academicWorkload")
-      ) || [];
+      JSON.parse(localStorage.getItem("academicWorkload")) || [];
 
     const savedExams =
       JSON.parse(localStorage.getItem("exams")) || [];
@@ -28,193 +28,396 @@ function TeacherDashboard() {
       ? workloads[workloads.length - 1]
       : null;
 
+  const getWorkloadLevel = (value) => {
+    if (!value) return "Not available";
+
+    if (
+      typeof value === "string" &&
+      value.toLowerCase().includes("very high")
+    ) {
+      return "Very High";
+    }
+
+    if (
+      typeof value === "string" &&
+      value.toLowerCase().includes("high")
+    ) {
+      return "High";
+    }
+
+    if (
+      typeof value === "string" &&
+      value.toLowerCase().includes("moderate")
+    ) {
+      return "Moderate";
+    }
+
+    return value;
+  };
+
+  const getDate = (date) => {
+    if (!date) return "Not available";
+
+    const parsed = new Date(date);
+
+    if (Number.isNaN(parsed.getTime())) {
+      return date;
+    }
+
+    return parsed.toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const workloadLevel = latestWorkload
+    ? getWorkloadLevel(latestWorkload.workload)
+    : "Not available";
+
+  const isHighWorkload =
+    workloadLevel === "High" ||
+    workloadLevel === "Very High";
+
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#f5f7fb",
-        padding: "30px",
-        fontFamily: "Arial, sans-serif",
-      }}
-    >
-      <h1>👨‍🏫 Teacher Dashboard</h1>
+    <DashboardLayout>
+      <div className="teacher-page">
 
-      <p>
-        Academic wellbeing information is displayed
-        according to student consent.
-      </p>
+        {/* HERO */}
+        <section className="teacher-hero">
+          <div>
+            <span className="page-eyebrow">
+              Teacher Portal
+            </span>
 
-      <hr />
+            <h1>Welcome, Teacher 👋</h1>
 
-      {!consent ? (
-        <div
-          style={{
-            background: "white",
-            padding: "25px",
-            borderRadius: "15px",
-            boxShadow:
-              "0 3px 10px rgba(0,0,0,0.08)",
-          }}
-        >
-          <h2>🔐 Information Restricted</h2>
-
-          <p>
-            The student has not given permission to share
-            selected academic wellbeing information with
-            the teacher.
-          </p>
-
-          <p>
-            Private wellbeing notes and counselling
-            information remain protected.
-          </p>
-        </div>
-      ) : (
-        <div>
-
-          {/* Academic Overview */}
-          <div
-            style={{
-              background: "white",
-              padding: "25px",
-              borderRadius: "15px",
-              marginBottom: "20px",
-              boxShadow:
-                "0 3px 10px rgba(0,0,0,0.08)",
-            }}
-          >
-            <h2>📚 Academic Overview</h2>
-
-            {latestWorkload ? (
-              <div>
-                <p>
-                  <strong>Current Workload:</strong>{" "}
-                  {latestWorkload.workload}
-                </p>
-
-                <p>
-                  <strong>Study Hours:</strong>{" "}
-                  {latestWorkload.hours}
-                </p>
-
-                <p>
-                  <strong>Assignments / Tasks:</strong>{" "}
-                  {latestWorkload.assignments}
-                </p>
-
-                <p>
-                  <strong>Last Updated:</strong>{" "}
-                  {latestWorkload.date}
-                </p>
-              </div>
-            ) : (
-              <p>
-                No academic workload information
-                available.
-              </p>
-            )}
+            <p>
+              Support your student's academic wellbeing
+              while respecting their privacy.
+            </p>
           </div>
 
-          {/* Exam Information */}
-          <div
-            style={{
-              background: "white",
-              padding: "25px",
-              borderRadius: "15px",
-              marginBottom: "20px",
-              boxShadow:
-                "0 3px 10px rgba(0,0,0,0.08)",
-            }}
-          >
-            <h2>📅 Upcoming Exams</h2>
+          <div className="teacher-hero-icon">
+            👩‍🏫
+          </div>
+        </section>
 
-            {exams.length === 0 ? (
-              <p>No upcoming exams available.</p>
-            ) : (
-              exams.map((exam, index) => (
-                <div
-                  key={index}
-                  style={{
-                    background: "#f5f7fb",
-                    padding: "15px",
-                    marginTop: "10px",
-                    borderRadius: "10px",
-                  }}
-                >
-                  <p>
-                    <strong>Subject:</strong>{" "}
-                    {exam.subject}
-                  </p>
+        {/* PRIVACY BANNER */}
+        <div className="teacher-privacy-banner">
+          <div className="teacher-privacy-icon">
+            🔐
+          </div>
+
+          <div>
+            <strong>Student privacy is protected</strong>
+
+            <p>
+              Only academic information shared through
+              the student's consent settings is displayed.
+            </p>
+          </div>
+        </div>
+
+        {!consent ? (
+          /* RESTRICTED */
+          <section className="teacher-restricted-card">
+            <div className="teacher-restricted-icon">
+              🔒
+            </div>
+
+            <h2>Academic information is private</h2>
+
+            <p>
+              The student has not given permission to share
+              selected academic wellbeing information with
+              the teacher.
+            </p>
+
+            <p className="teacher-small-text">
+              Private wellbeing notes and counselling
+              information remain protected.
+            </p>
+
+            <Link
+              to="/privacy"
+              className="btn-primary"
+            >
+              View Privacy Settings
+            </Link>
+          </section>
+        ) : (
+          <>
+            {/* ACADEMIC OVERVIEW */}
+            <section className="teacher-section">
+
+              <div className="section-heading">
+                <div>
+                  <span className="page-eyebrow">
+                    Latest update
+                  </span>
+
+                  <h2>Academic Overview 📚</h2>
+                </div>
+
+                {latestWorkload && (
+                  <span className="teacher-date">
+                    {getDate(latestWorkload.date)}
+                  </span>
+                )}
+              </div>
+
+              {latestWorkload ? (
+                <>
+                  <div className="teacher-metrics-grid">
+
+                    <div className="teacher-metric-card workload-metric">
+                      <span className="metric-icon">
+                        📊
+                      </span>
+
+                      <span className="metric-label">
+                        Workload
+                      </span>
+
+                      <strong>
+                        {workloadLevel}
+                      </strong>
+
+                      <small>
+                        Current level
+                      </small>
+                    </div>
+
+                    <div className="teacher-metric-card study-metric">
+                      <span className="metric-icon">
+                        ⏰
+                      </span>
+
+                      <span className="metric-label">
+                        Study Hours
+                      </span>
+
+                      <strong>
+                        {latestWorkload.hours || 0}
+                      </strong>
+
+                      <small>
+                        Hours reported
+                      </small>
+                    </div>
+
+                    <div className="teacher-metric-card task-metric">
+                      <span className="metric-icon">
+                        📝
+                      </span>
+
+                      <span className="metric-label">
+                        Tasks
+                      </span>
+
+                      <strong>
+                        {latestWorkload.assignments || 0}
+                      </strong>
+
+                      <small>
+                        Assignments / tasks
+                      </small>
+                    </div>
+
+                    <div className="teacher-metric-card update-metric">
+                      <span className="metric-icon">
+                        📅
+                      </span>
+
+                      <span className="metric-label">
+                        Last Updated
+                      </span>
+
+                      <strong>
+                        {getDate(latestWorkload.date)}
+                      </strong>
+
+                      <small>
+                        Latest report
+                      </small>
+                    </div>
+
+                  </div>
+                </>
+              ) : (
+                <div className="teacher-empty-card">
+                  <div>📚</div>
+
+                  <h3>
+                    No academic workload data yet
+                  </h3>
 
                   <p>
-                    <strong>Date:</strong>{" "}
-                    {exam.examDate}
-                  </p>
-
-                  <p>
-                    <strong>Difficulty:</strong>{" "}
-                    {exam.difficulty}
+                    Academic information will appear here
+                    once the student records their workload.
                   </p>
                 </div>
-              ))
-            )}
-          </div>
+              )}
+            </section>
 
-          {/* Teacher Insight */}
-          <div
-            style={{
-              background: "white",
-              padding: "25px",
-              borderRadius: "15px",
-              marginBottom: "20px",
-              boxShadow:
-                "0 3px 10px rgba(0,0,0,0.08)",
-            }}
-          >
-            <h2>💡 Academic Support Insight</h2>
+            {/* EXAMS */}
+            <section className="teacher-section">
 
-            {latestWorkload &&
-            (latestWorkload.workload === "High" ||
-              latestWorkload.workload ===
-                "Very High") ? (
-              <p>
-                ⚠ The student's recent academic workload
-                is high. Consider discussing workload
-                planning or study support.
-              </p>
-            ) : (
-              <p>
-                ✅ No high academic workload has been
-                reported recently.
-              </p>
-            )}
-          </div>
+              <div className="section-heading">
+                <div>
+                  <span className="page-eyebrow">
+                    Academic schedule
+                  </span>
 
-          {/* Privacy */}
-          <div
-            style={{
-              background: "#f3f4f6",
-              padding: "20px",
-              borderRadius: "12px",
-            }}
-          >
-            <h3>🔐 Privacy Protection</h3>
+                  <h2>Upcoming Exams 📅</h2>
+                </div>
 
-            <p>
-              This dashboard shows only academic
-              information permitted by the student's
-              consent.
-            </p>
+                <span className="teacher-count">
+                  {exams.length}{" "}
+                  {exams.length === 1 ? "exam" : "exams"}
+                </span>
+              </div>
 
-            <p>
-              Private counselling information and
-              personal check-in notes are not displayed.
-            </p>
-          </div>
+              {exams.length === 0 ? (
+                <div className="teacher-empty-card">
+                  <div>🌱</div>
 
-        </div>
-      )}
-    </div>
+                  <h3>No upcoming exams</h3>
+
+                  <p>
+                    No exam information has been added yet.
+                  </p>
+                </div>
+              ) : (
+                <div className="teacher-exam-list">
+
+                  {exams.map((exam, index) => (
+                    <div
+                      className="teacher-exam-card"
+                      key={index}
+                    >
+                      <div className="exam-date-box">
+                        <span>📅</span>
+                      </div>
+
+                      <div className="exam-details">
+                        <span className="page-eyebrow">
+                          Exam
+                        </span>
+
+                        <h3>
+                          {exam.subject || "Subject"}
+                        </h3>
+
+                        <p>
+                          {exam.examDate || "Date not available"}
+                        </p>
+                      </div>
+
+                      <div className="exam-difficulty">
+                        <span>
+                          Difficulty
+                        </span>
+
+                        <strong>
+                          {exam.difficulty || "Not specified"}
+                        </strong>
+                      </div>
+                    </div>
+                  ))}
+
+                </div>
+              )}
+            </section>
+
+            {/* INSIGHT */}
+            <section
+              className={`teacher-insight-card ${
+                isHighWorkload
+                  ? "teacher-insight-warning"
+                  : ""
+              }`}
+            >
+              <div className="teacher-insight-icon">
+                {isHighWorkload ? "⚠️" : "💡"}
+              </div>
+
+              <div>
+                <span className="page-eyebrow">
+                  Academic Support Insight
+                </span>
+
+                <h2>
+                  {isHighWorkload
+                    ? "Workload may need attention"
+                    : "Academic wellbeing looks steady"}
+                </h2>
+
+                <p>
+                  {isHighWorkload
+                    ? "The student's recent academic workload is high. Consider discussing workload planning, deadlines, or study support."
+                    : "No high academic workload has been reported recently. Continue encouraging healthy study habits and balanced routines."}
+                </p>
+              </div>
+            </section>
+
+            {/* SUPPORT */}
+            <section className="teacher-support-card">
+              <div className="teacher-support-icon">
+                🌱
+              </div>
+
+              <div>
+                <h2>
+                  How teachers can support
+                </h2>
+
+                <p>
+                  Encourage realistic planning, manageable
+                  deadlines, regular breaks, and open
+                  communication when academic pressure rises.
+                </p>
+              </div>
+            </section>
+
+            {/* PRIVACY */}
+            <section className="teacher-section teacher-privacy-card">
+
+              <div className="privacy-card-icon">
+                🔐
+              </div>
+
+              <div>
+                <h3>
+                  Privacy Protection
+                </h3>
+
+                <p>
+                  This dashboard shows only academic
+                  information permitted by the student's
+                  consent.
+                </p>
+
+                <p>
+                  Private counselling information and
+                  personal check-in notes are not displayed.
+                </p>
+
+                <Link
+                  to="/privacy"
+                  className="text-link"
+                >
+                  Review privacy settings →
+                </Link>
+              </div>
+
+            </section>
+          </>
+        )}
+
+      </div>
+    </DashboardLayout>
   );
 }
 

@@ -1,594 +1,383 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import DashboardLayout from "../components/DashboardLayout";
 
 function PatternAnalysis() {
-  const [analysis, setAnalysis] = useState(null);
+  const [checkins, setCheckins] = useState([]);
 
   useEffect(() => {
-    const checkins =
-      JSON.parse(localStorage.getItem("wellbeingCheckins")) || [];
-
-    const exams =
-      JSON.parse(localStorage.getItem("exams")) || [];
-
-    const workloads =
-      JSON.parse(localStorage.getItem("academicWorkload")) || [];
-
-    if (checkins.length < 2) {
-      setAnalysis({
-        status: "Not Enough Data",
-        message:
-          "Complete at least two wellbeing check-ins so your Digital Twin can understand your personal pattern.",
-        changes: [],
-        averages: null,
-      });
-      return;
-    }
-
-    const recent = checkins[checkins.length - 1];
-    const previous = checkins.slice(0, -1);
-
-    const average = (values) => {
-      if (values.length === 0) return 0;
-
-      return (
-        values.reduce(
-          (sum, value) => sum + Number(value),
-          0
-        ) / values.length
-      );
-    };
-
-    const averageMood = average(
-      previous.map((item) => item.mood)
-    );
-
-    const averageStress = average(
-      previous.map((item) => item.stress)
-    );
-
-    const averageSleep = average(
-      previous.map((item) => item.sleep)
-    );
-
-    const moodChange =
-      Number(recent.mood) - averageMood;
-
-    const stressChange =
-      Number(recent.stress) - averageStress;
-
-    const sleepChange =
-      Number(recent.sleep) - averageSleep;
-
-    const changes = [];
-
-    if (moodChange <= -0.8) {
-      changes.push(
-        "Your mood has decreased compared with your usual pattern."
-      );
-    }
-
-    if (stressChange >= 0.8) {
-      changes.push(
-        "Your stress has increased compared with your usual pattern."
-      );
-    }
-
-    if (sleepChange <= -1) {
-      changes.push(
-        "Your sleep duration has decreased compared with your usual pattern."
-      );
-    }
-
-    if (
-      recent.workload === "High" ||
-      recent.workload === "Very High"
-    ) {
-      changes.push(
-        "Your current academic workload is high."
-      );
-    }
-
-    const today = new Date();
-
-    const upcomingExams = exams.filter((exam) => {
-      const examDate = new Date(exam.examDate);
-
-      return examDate >= today;
-    });
-
-    if (upcomingExams.length > 0) {
-      changes.push(
-        `You have ${upcomingExams.length} upcoming exam(s).`
-      );
-    }
-
-    if (workloads.length > 0) {
-      const latestWorkload =
-        workloads[workloads.length - 1];
-
-      if (
-        latestWorkload.workload === "High" ||
-        latestWorkload.workload === "Very High"
-      ) {
-        changes.push(
-          "Your recent academic workload records also show increased workload."
-        );
-      }
-    }
-
-    let status = "Pattern Stable";
-
-    if (changes.length > 0) {
-      status = "Pattern Change Detected";
-    }
-
-    setAnalysis({
-      status,
-      message:
-        changes.length > 0
-          ? "Your recent wellbeing pattern is different from your usual pattern."
-          : "Your recent wellbeing pattern is currently similar to your usual pattern.",
-      changes,
-      averages: {
-        mood: averageMood,
-        stress: averageStress,
-        sleep: averageSleep,
-      },
-      recent,
-    });
+    const saved = JSON.parse(localStorage.getItem("wellbeingCheckins")) || [];
+    setCheckins(saved);
   }, []);
 
-  if (!analysis) {
+  const analysis = useMemo(() => {
+    if (!checkins.length) {
+      return {
+        avgMood: 0,
+        avgStress: 0,
+        avgSleep: 0,
+        avgWorkload: 0,
+        insights: [],
+      };
+    }
+
+    const total = checkins.length;
+
+    const avgMood =
+      checkins.reduce((sum, item) => sum + Number(item.mood || 0), 0) / total;
+
+    const avgStress =
+      checkins.reduce((sum, item) => sum + Number(item.stress || 0), 0) / total;
+
+    const avgSleep =
+      checkins.reduce((sum, item) => sum + Number(item.sleep || 0), 0) / total;
+
+    const avgWorkload =
+      checkins.reduce(
+        (sum, item) => sum + Number(item.workload || 0),
+        0
+      ) / total;
+
+    const insights = [];
+
+    if (avgStress >= 4) {
+      insights.push({
+        icon: "🌿",
+        title: "Stress is on the higher side",
+        text: "Your recent check-ins show higher stress. Try short breaks, breathing exercises, and a lighter study schedule.",
+        type: "warning",
+      });
+    } else if (avgStress <= 2) {
+      insights.push({
+        icon: "😊",
+        title: "Stress looks manageable",
+        text: "Your recent stress levels are relatively low. Keep following the habits that help you stay calm.",
+        type: "positive",
+      });
+    } else {
+      insights.push({
+        icon: "💚",
+        title: "Your stress is moderate",
+        text: "Your stress level is fairly balanced. Keep monitoring it during busy academic periods.",
+        type: "normal",
+      });
+    }
+
+    if (avgSleep < 6) {
+      insights.push({
+        icon: "😴",
+        title: "Sleep may need attention",
+        text: "Your average sleep is below 6 hours. Try maintaining a regular sleep schedule and reducing late-night study.",
+        type: "warning",
+      });
+    } else {
+      insights.push({
+        icon: "🌙",
+        title: "Sleep pattern looks healthy",
+        text: "Your average sleep duration is looking reasonable. Consistent sleep can support concentration and mood.",
+        type: "positive",
+      });
+    }
+
+    if (avgWorkload >= 4) {
+      insights.push({
+        icon: "📚",
+        title: "Academic workload is high",
+        text: "Your workload appears high. Breaking large tasks into smaller goals may make studying easier.",
+        type: "warning",
+      });
+    } else {
+      insights.push({
+        icon: "✨",
+        title: "Workload is manageable",
+        text: "Your academic workload appears manageable based on your recent check-ins.",
+        type: "positive",
+      });
+    }
+
+    if (avgMood >= 4) {
+      insights.push({
+        icon: "🌸",
+        title: "Positive mood trend",
+        text: "Your mood has generally been positive. Continue the activities and routines that make you feel good.",
+        type: "positive",
+      });
+    } else if (avgMood <= 2) {
+      insights.push({
+        icon: "💙",
+        title: "Mood may need some care",
+        text: "Your recent mood scores are lower. Give yourself time to rest and consider talking to someone you trust if needed.",
+        type: "warning",
+      });
+    }
+
+    return {
+      avgMood,
+      avgStress,
+      avgSleep,
+      avgWorkload,
+      insights,
+    };
+  }, [checkins]);
+
+  const getBarWidth = (value, max = 5) => {
+    return `${Math.min((value / max) * 100, 100)}%`;
+  };
+
+  if (!checkins.length) {
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#f5f7fb",
-          fontFamily: "Arial, sans-serif",
-        }}
-      >
-        <h2>🧠 Analyzing your wellbeing pattern...</h2>
-      </div>
+      <DashboardLayout>
+        <div className="page-header">
+          <div>
+            <div className="eyebrow">PERSONALIZED INSIGHTS</div>
+            <h1>AI Insights</h1>
+            <p>
+              Understand your wellbeing patterns and receive helpful
+              suggestions.
+            </p>
+          </div>
+        </div>
+
+        <div className="empty-state">
+          <div className="empty-state-icon">✦</div>
+          <h2>No insights yet</h2>
+          <p>
+            Complete a few wellbeing check-ins first. Your patterns will appear
+            here automatically.
+          </p>
+
+          <Link to="/checkin" className="primary-button">
+            Start Check-in
+          </Link>
+        </div>
+      </DashboardLayout>
     );
   }
 
-  const patternChanged =
-    analysis.status === "Pattern Change Detected";
-
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background:
-          "linear-gradient(135deg, #eef4ff, #f8f1ff, #eefbf7)",
-        fontFamily: "Arial, sans-serif",
-        color: "#1f2937",
-        padding: "30px 20px",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: "1000px",
-          margin: "auto",
-        }}
-      >
-
-        {/* Header */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "15px",
-            marginBottom: "30px",
-          }}
-        >
-          <div>
-            <h1
-              style={{
-                margin: 0,
-                color: "#312e81",
-              }}
-            >
-              🧠 Pattern Analysis
-            </h1>
-
-            <p style={{ color: "#6b7280" }}>
-              Your Digital Twin is analyzing changes in
-              your personal wellbeing pattern.
-            </p>
-          </div>
-
-          <Link to="/student">
-            <button
-              style={{
-                padding: "12px 20px",
-                background: "white",
-                border: "none",
-                borderRadius: "10px",
-                cursor: "pointer",
-                boxShadow:
-                  "0 4px 12px rgba(0,0,0,0.08)",
-              }}
-            >
-              ← Dashboard
-            </button>
-          </Link>
-        </div>
-
-
-        {/* Status */}
-        <div
-          style={{
-            background: patternChanged
-              ? "#fff7ed"
-              : "#ecfdf5",
-            padding: "30px",
-            borderRadius: "22px",
-            marginBottom: "25px",
-            borderLeft: patternChanged
-              ? "6px solid #f59e0b"
-              : "6px solid #10b981",
-            boxShadow:
-              "0 7px 22px rgba(0,0,0,0.07)",
-          }}
-        >
-          <div style={{ fontSize: "45px" }}>
-            {patternChanged ? "⚠️" : "✅"}
-          </div>
-
-          <h2
-            style={{
-              color: patternChanged
-                ? "#b45309"
-                : "#047857",
-            }}
-          >
-            {analysis.status}
-          </h2>
-
-          <p
-            style={{
-              fontSize: "16px",
-              lineHeight: "1.6",
-            }}
-          >
-            {analysis.message}
+    <DashboardLayout>
+      <div className="page-header">
+        <div>
+          <div className="eyebrow">PERSONALIZED INSIGHTS</div>
+          <h1>AI Insights</h1>
+          <p>
+            Simple patterns from your recent wellbeing check-ins.
           </p>
         </div>
 
+        <Link to="/checkin" className="secondary-button">
+          + New Check-in
+        </Link>
+      </div>
 
-        {/* Not Enough Data */}
-        {!analysis.averages && (
-          <div
-            style={{
-              background: "white",
-              padding: "30px",
-              borderRadius: "20px",
-              boxShadow:
-                "0 6px 20px rgba(0,0,0,0.07)",
-              textAlign: "center",
-            }}
-          >
-            <div style={{ fontSize: "50px" }}>📊</div>
+      {/* Main insight */}
+      <section className="insight-hero">
+        <div className="insight-hero-icon">✦</div>
 
-            <h2>More data is needed</h2>
-
-            <p style={{ color: "#6b7280" }}>
-              Your Digital Twin needs at least two
-              check-ins before it can compare your recent
-              wellbeing with your personal baseline.
-            </p>
-
-            <Link to="/checkin">
-              <button
-                style={{
-                  marginTop: "15px",
-                  padding: "13px 22px",
-                  background: "#4f46e5",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "10px",
-                  fontWeight: "bold",
-                  cursor: "pointer",
-                }}
-              >
-                📝 Complete Check-in
-              </button>
-            </Link>
-          </div>
-        )}
-
-
-        {/* Analysis Data */}
-        {analysis.averages && (
-          <>
-            {/* Comparison */}
-            <div
-              style={{
-                background: "white",
-                padding: "28px",
-                borderRadius: "20px",
-                boxShadow:
-                  "0 6px 20px rgba(0,0,0,0.07)",
-                marginBottom: "25px",
-              }}
-            >
-              <h2 style={{ color: "#312e81" }}>
-                📊 Personal Baseline vs Latest
-              </h2>
-
-              <p style={{ color: "#6b7280" }}>
-                The system compares your latest check-in
-                with your previous personal pattern.
-              </p>
-
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns:
-                    "repeat(auto-fit, minmax(200px, 1fr))",
-                  gap: "15px",
-                  marginTop: "20px",
-                }}
-              >
-
-                {/* Mood */}
-                <div
-                  style={{
-                    background: "#eef2ff",
-                    padding: "20px",
-                    borderRadius: "14px",
-                  }}
-                >
-                  <div style={{ fontSize: "28px" }}>
-                    😊
-                  </div>
-
-                  <strong>Mood</strong>
-
-                  <p>
-                    Baseline:{" "}
-                    {analysis.averages.mood.toFixed(1)}
-                  </p>
-
-                  <h3>
-                    Latest: {analysis.recent.mood} / 5
-                  </h3>
-                </div>
-
-
-                {/* Stress */}
-                <div
-                  style={{
-                    background: "#fff7ed",
-                    padding: "20px",
-                    borderRadius: "14px",
-                  }}
-                >
-                  <div style={{ fontSize: "28px" }}>
-                    😟
-                  </div>
-
-                  <strong>Stress</strong>
-
-                  <p>
-                    Baseline:{" "}
-                    {analysis.averages.stress.toFixed(1)}
-                  </p>
-
-                  <h3>
-                    Latest: {analysis.recent.stress} / 5
-                  </h3>
-                </div>
-
-
-                {/* Sleep */}
-                <div
-                  style={{
-                    background: "#ecfdf5",
-                    padding: "20px",
-                    borderRadius: "14px",
-                  }}
-                >
-                  <div style={{ fontSize: "28px" }}>
-                    😴
-                  </div>
-
-                  <strong>Sleep</strong>
-
-                  <p>
-                    Baseline:{" "}
-                    {analysis.averages.sleep.toFixed(1)}
-                    {" "}hrs
-                  </p>
-
-                  <h3>
-                    Latest: {analysis.recent.sleep} hrs
-                  </h3>
-                </div>
-
-              </div>
-            </div>
-
-
-            {/* Changes */}
-            <div
-              style={{
-                background: "white",
-                padding: "28px",
-                borderRadius: "20px",
-                boxShadow:
-                  "0 6px 20px rgba(0,0,0,0.07)",
-                marginBottom: "25px",
-              }}
-            >
-              <h2 style={{ color: "#312e81" }}>
-                🔎 What Did the System Detect?
-              </h2>
-
-              {analysis.changes.length > 0 ? (
-                <div>
-                  {analysis.changes.map(
-                    (change, index) => (
-                      <div
-                        key={index}
-                        style={{
-                          background: "#fff7ed",
-                          padding: "16px",
-                          borderRadius: "12px",
-                          marginBottom: "10px",
-                          borderLeft:
-                            "4px solid #f59e0b",
-                        }}
-                      >
-                        ⚠️ {change}
-                      </div>
-                    )
-                  )}
-                </div>
-              ) : (
-                <div
-                  style={{
-                    background: "#ecfdf5",
-                    padding: "18px",
-                    borderRadius: "12px",
-                    color: "#047857",
-                  }}
-                >
-                  ✅ No significant changes were
-                  detected in your recent pattern.
-                </div>
-              )}
-            </div>
-
-
-            {/* Support */}
-            <div
-              style={{
-                background:
-                  "linear-gradient(135deg, #312e81, #4f46e5)",
-                color: "white",
-                padding: "30px",
-                borderRadius: "20px",
-                marginBottom: "25px",
-              }}
-            >
-              <h2>💡 What Can You Do?</h2>
-
-              <p style={{ lineHeight: "1.7" }}>
-                Regular check-ins can help you understand
-                how your mood, stress, sleep and academic
-                workload change together.
-              </p>
-
-              {patternChanged && (
-                <p style={{ lineHeight: "1.7" }}>
-                  Consider taking a short break, reviewing
-                  your workload, maintaining a healthy
-                  routine, or talking to someone you trust.
-                </p>
-              )}
-
-              <Link to="/counsellor-connect">
-                <button
-                  style={{
-                    marginTop: "10px",
-                    padding: "13px 20px",
-                    background: "white",
-                    color: "#4338ca",
-                    border: "none",
-                    borderRadius: "10px",
-                    fontWeight: "bold",
-                    cursor: "pointer",
-                  }}
-                >
-                  🧑‍⚕️ Connect with Counsellor
-                </button>
-              </Link>
-            </div>
-          </>
-        )}
-
-
-        {/* How It Works */}
-        <div
-          style={{
-            background: "white",
-            padding: "28px",
-            borderRadius: "20px",
-            boxShadow:
-              "0 6px 20px rgba(0,0,0,0.07)",
-            marginBottom: "25px",
-          }}
-        >
-          <h2 style={{ color: "#312e81" }}>
-            🔬 How the Digital Twin Works
+        <div>
+          <div className="insight-label">YOUR WELLBEING PATTERN</div>
+          <h2>
+            {analysis.avgStress >= 4 || analysis.avgSleep < 6
+              ? "A little more self-care may help."
+              : analysis.avgMood >= 4
+              ? "You're building a healthy wellbeing pattern."
+              : "Keep checking in with yourself."}
           </h2>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns:
-                "repeat(auto-fit, minmax(200px, 1fr))",
-              gap: "15px",
-            }}
-          >
-            <div>
-              <h3>1️⃣ Collect</h3>
-              <p style={{ color: "#6b7280" }}>
-                Collect wellbeing information through
-                regular check-ins.
-              </p>
+          <p>
+            These insights are based on your recent check-in information and
+            are designed to help you notice changes in your routine.
+          </p>
+        </div>
+      </section>
+
+      {/* Pattern summary */}
+      <section className="section-block">
+        <div className="section-heading">
+          <div>
+            <h2>Pattern Summary</h2>
+            <p>Your average values from recent check-ins.</p>
+          </div>
+        </div>
+
+        <div className="pattern-grid">
+          <div className="pattern-card">
+            <div className="pattern-card-top">
+              <span className="pattern-icon pattern-mood">😊</span>
+              <span>Mood</span>
             </div>
 
-            <div>
-              <h3>2️⃣ Compare</h3>
-              <p style={{ color: "#6b7280" }}>
-                Compare recent values with the student's
-                personal baseline.
-              </p>
+            <strong>{analysis.avgMood.toFixed(1)}/5</strong>
+
+            <div className="pattern-bar">
+              <div
+                className="pattern-bar-fill"
+                style={{ width: getBarWidth(analysis.avgMood) }}
+              ></div>
             </div>
 
-            <div>
-              <h3>3️⃣ Detect</h3>
-              <p style={{ color: "#6b7280" }}>
-                Identify meaningful changes in mood,
-                stress, sleep and workload.
-              </p>
+            <small>Higher is better</small>
+          </div>
+
+          <div className="pattern-card">
+            <div className="pattern-card-top">
+              <span className="pattern-icon pattern-stress">🧘</span>
+              <span>Stress</span>
             </div>
 
+            <strong>{analysis.avgStress.toFixed(1)}/5</strong>
+
+            <div className="pattern-bar">
+              <div
+                className="pattern-bar-fill"
+                style={{ width: getBarWidth(analysis.avgStress) }}
+              ></div>
+            </div>
+
+            <small>Lower is better</small>
+          </div>
+
+          <div className="pattern-card">
+            <div className="pattern-card-top">
+              <span className="pattern-icon pattern-sleep">🌙</span>
+              <span>Sleep</span>
+            </div>
+
+            <strong>{analysis.avgSleep.toFixed(1)} hrs</strong>
+
+            <div className="pattern-bar">
+              <div
+                className="pattern-bar-fill"
+                style={{
+                  width: `${Math.min((analysis.avgSleep / 8) * 100, 100)}%`,
+                }}
+              ></div>
+            </div>
+
+            <small>Based on your check-ins</small>
+          </div>
+
+          <div className="pattern-card">
+            <div className="pattern-card-top">
+              <span className="pattern-icon pattern-workload">📚</span>
+              <span>Workload</span>
+            </div>
+
+            <strong>{analysis.avgWorkload.toFixed(1)}/5</strong>
+
+            <div className="pattern-bar">
+              <div
+                className="pattern-bar-fill"
+                style={{ width: getBarWidth(analysis.avgWorkload) }}
+              ></div>
+            </div>
+
+            <small>Lower is easier to manage</small>
+          </div>
+        </div>
+      </section>
+
+      {/* Insights */}
+      <section className="section-block">
+        <div className="section-heading">
+          <div>
+            <h2>What I noticed</h2>
+            <p>Personalized observations from your recent data.</p>
+          </div>
+        </div>
+
+        <div className="insights-list">
+          {analysis.insights.map((insight, index) => (
+            <div
+              className={`ai-insight-card ai-insight-${insight.type}`}
+              key={index}
+            >
+              <div className="ai-insight-icon">{insight.icon}</div>
+
+              <div className="ai-insight-content">
+                <h3>{insight.title}</h3>
+                <p>{insight.text}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Recommendations */}
+      <section className="section-block">
+        <div className="section-heading">
+          <div>
+            <h2>Small steps for you</h2>
+            <p>Simple actions based on your current pattern.</p>
+          </div>
+        </div>
+
+        <div className="recommendation-grid">
+          <div className="recommendation-card">
+            <span>🌿</span>
             <div>
-              <h3>4️⃣ Support</h3>
-              <p style={{ color: "#6b7280" }}>
-                Provide helpful insights and encourage
-                appropriate support when needed.
+              <h3>Take short breaks</h3>
+              <p>
+                Try a 5–10 minute break after focused study sessions.
+              </p>
+            </div>
+          </div>
+
+          <div className="recommendation-card">
+            <span>💧</span>
+            <div>
+              <h3>Look after your routine</h3>
+              <p>
+                Keep regular meals, hydration, rest, and study times.
+              </p>
+            </div>
+          </div>
+
+          <div className="recommendation-card">
+            <span>📝</span>
+            <div>
+              <h3>Plan smaller tasks</h3>
+              <p>
+                Divide large academic tasks into smaller achievable goals.
+              </p>
+            </div>
+          </div>
+
+          <div className="recommendation-card">
+            <span>💬</span>
+            <div>
+              <h3>Talk when you need help</h3>
+              <p>
+                If something feels difficult, consider connecting with a
+                counsellor or trusted person.
               </p>
             </div>
           </div>
         </div>
+      </section>
 
+      {/* Navigation */}
+      <div className="page-actions">
+        <Link to="/chart" className="secondary-button">
+          View Trends
+        </Link>
 
-        {/* Disclaimer */}
-        <div
-          style={{
-            textAlign: "center",
-            color: "#6b7280",
-            fontSize: "13px",
-            padding: "15px",
-          }}
-        >
-          🔐 This system identifies wellbeing patterns
-          and does not diagnose mental health conditions.
-        </div>
-
+        <Link to="/digital-twin" className="primary-button">
+          View Digital Twin
+        </Link>
       </div>
-    </div>
+
+      <div className="privacy-note">
+        <span>🔒</span>
+        <div>
+          <strong>Your data stays personal</strong>
+          <p>
+            These insights are generated from the wellbeing information stored
+            in your app.
+          </p>
+        </div>
+      </div>
+    </DashboardLayout>
   );
 }
 

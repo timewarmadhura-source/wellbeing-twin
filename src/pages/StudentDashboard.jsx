@@ -1,475 +1,608 @@
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { useEffect, useState } from "react";
+import DashboardLayout from "../components/DashboardLayout";
 
 function StudentDashboard() {
-  const [latest, setLatest] = useState(null);
+  const [checkins, setCheckins] = useState([]);
 
   useEffect(() => {
-    const checkins =
-      JSON.parse(localStorage.getItem("wellbeingCheckins")) || [];
+    try {
+      const savedData = localStorage.getItem("wellbeingCheckins");
 
-    if (checkins.length > 0) {
-      setLatest(checkins[checkins.length - 1]);
+      if (savedData) {
+        const parsedData = JSON.parse(savedData);
+
+        if (Array.isArray(parsedData)) {
+          setCheckins(parsedData);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading wellbeing data:", error);
+      setCheckins([]);
     }
   }, []);
 
-  const cardStyle = {
-    background: "rgba(17, 25, 48, 0.75)",
-    border: "1px solid rgba(255,255,255,0.08)",
-    borderRadius: "20px",
-    padding: "24px",
-    boxShadow: "0 15px 40px rgba(0,0,0,0.25)",
-    backdropFilter: "blur(12px)",
+  const latestCheckin = useMemo(() => {
+    if (!checkins.length) return null;
+
+    return [...checkins].sort((a, b) => {
+      return new Date(b.date) - new Date(a.date);
+    })[0];
+  }, [checkins]);
+
+  const moodInfo = {
+    1: { emoji: "😊", label: "Good" },
+    2: { emoji: "🙂", label: "Okay" },
+    3: { emoji: "😐", label: "Not great" },
+    4: { emoji: "😟", label: "Difficult" },
+    5: { emoji: "😣", label: "Very difficult" },
   };
 
-  const buttonStyle = {
-    padding: "12px 18px",
-    border: "none",
-    borderRadius: "10px",
-    background: "linear-gradient(135deg,#8b5cf6,#3b82f6)",
-    color: "white",
-    fontWeight: "600",
-    cursor: "pointer",
-    textDecoration: "none",
-    display: "inline-block",
+  const levelInfo = {
+    1: "Very low",
+    2: "Low",
+    3: "Moderate",
+    4: "High",
+    5: "Very high",
+  };
+
+  const getWellbeingStatus = () => {
+    if (!latestCheckin) {
+      return {
+        title: "Let's check in",
+        message:
+          "Take a moment to tell us how you're feeling today.",
+        emoji: "🌱",
+      };
+    }
+
+    const mood = Number(latestCheckin.mood);
+    const stress = Number(latestCheckin.stress);
+    const sleep = Number(latestCheckin.sleep);
+    const workload = Number(latestCheckin.workload);
+
+    if (mood <= 2 && stress <= 2 && sleep >= 7) {
+      return {
+        title: "You're doing well",
+        message:
+          "Your recent check-in shows some positive wellbeing signals. Keep taking care of yourself.",
+        emoji: "🌿",
+      };
+    }
+
+    if (stress >= 4 || workload >= 4 || sleep < 6) {
+      return {
+        title: "You may need a little support",
+        message:
+          "Your recent responses suggest that things may feel a little heavy. Small breaks and support can help.",
+        emoji: "💚",
+      };
+    }
+
+    return {
+      title: "You're doing okay",
+      message:
+        "Your wellbeing looks fairly balanced. Keep checking in with yourself regularly.",
+      emoji: "🌼",
+    };
+  };
+
+  const wellbeingStatus = getWellbeingStatus();
+
+  const formatDate = (date) => {
+    if (!date) return "";
+
+    try {
+      return new Date(date).toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+    } catch {
+      return "";
+    }
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background:
-          "radial-gradient(circle at 10% 10%, rgba(124,58,237,0.22), transparent 30%), radial-gradient(circle at 90% 20%, rgba(37,99,235,0.2), transparent 30%), #070b18",
-        color: "#f8fafc",
-        fontFamily: "Arial, sans-serif",
-        padding: "25px",
-        boxSizing: "border-box",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: "1200px",
-          margin: "auto",
-        }}
-      >
+    <DashboardLayout>
+      <div className="student-dashboard">
 
-        {/* HEADER */}
-        <header
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "20px",
-            marginBottom: "35px",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "15px",
-            }}
-          >
-            <div
-              style={{
-                width: "55px",
-                height: "55px",
-                borderRadius: "16px",
-                background:
-                  "linear-gradient(135deg,#8b5cf6,#3b82f6)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "28px",
-                boxShadow:
-                  "0 0 30px rgba(139,92,246,0.4)",
-              }}
-            >
-              🧠
+        {/* =====================================================
+            WELCOME HEADER
+            ===================================================== */}
+
+        <section className="dashboard-welcome">
+          <div>
+            <div className="eyebrow">STUDENT WELLBEING</div>
+
+            <h1>Hi, Madhura! 👋</h1>
+
+            <p>
+              Welcome back. Let's see how you're doing today.
+            </p>
+          </div>
+
+          <div className="dashboard-date">
+            <span>Today</span>
+            <strong>
+              {new Date().toLocaleDateString("en-IN", {
+                day: "numeric",
+                month: "short",
+              })}
+            </strong>
+          </div>
+        </section>
+
+
+        {/* =====================================================
+            TODAY'S FEELING
+            ===================================================== */}
+
+        <section className="today-feeling-card">
+
+          <div className="today-feeling-content">
+
+            <div className="today-feeling-icon">
+              {latestCheckin
+                ? moodInfo[Number(latestCheckin.mood)]?.emoji || "😊"
+                : "🌱"}
             </div>
 
             <div>
-              <h1
-                style={{
-                  margin: 0,
-                  fontSize: "28px",
-                }}
-              >
-                Wellbeing Twin
-              </h1>
+              <span className="card-kicker">
+                HOW ARE THINGS FEELING TODAY?
+              </span>
 
-              <p
-                style={{
-                  margin: "5px 0 0",
-                  color: "#94a3b8",
-                }}
-              >
-                Student Dashboard
+              <h2>
+                {latestCheckin
+                  ? `You're feeling ${
+                      moodInfo[Number(latestCheckin.mood)]?.label?.toLowerCase() ||
+                      "okay"
+                    }`
+                  : "Let's check in with yourself"}
+              </h2>
+
+              <p>
+                {latestCheckin
+                  ? `Your last check-in was on ${formatDate(
+                      latestCheckin.date
+                    )}.`
+                  : "A quick check-in helps your wellbeing twin understand your day."}
               </p>
             </div>
+
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-            }}
+          <Link
+            to="/checkin"
+            className="primary-button dashboard-checkin-button"
           >
-            <div
-              style={{
-                padding: "10px 15px",
-                borderRadius: "25px",
-                background: "rgba(16,185,129,0.12)",
-                border: "1px solid rgba(16,185,129,0.2)",
-                color: "#34d399",
-              }}
-            >
-              ● System Active
-            </div>
+            {latestCheckin ? "Update Check-in →" : "Start Check-in →"}
+          </Link>
 
-            <div
-              style={{
-                padding: "10px 15px",
-                borderRadius: "25px",
-                background: "rgba(255,255,255,0.06)",
-              }}
-            >
-              👤 Student
-            </div>
-          </div>
-        </header>
-
-
-        {/* WELCOME */}
-        <section
-          style={{
-            ...cardStyle,
-            marginBottom: "25px",
-            background:
-              "linear-gradient(135deg, rgba(79,70,229,0.35), rgba(37,99,235,0.18))",
-          }}
-        >
-          <p
-            style={{
-              color: "#a78bfa",
-              fontWeight: "600",
-              marginBottom: "8px",
-            }}
-          >
-            PERSONAL WELLBEING SPACE
-          </p>
-
-          <h2
-            style={{
-              fontSize: "32px",
-              margin: "0 0 10px",
-            }}
-          >
-            Welcome back 👋
-          </h2>
-
-          <p
-            style={{
-              color: "#cbd5e1",
-              lineHeight: "1.7",
-              maxWidth: "700px",
-            }}
-          >
-            Your Digital Twin continuously learns from your
-            wellbeing check-ins and helps you understand
-            changes in your mood, stress, sleep and academic
-            workload.
-          </p>
         </section>
 
 
-        {/* STAT CARDS */}
-        <section
-          style={{
-            display: "grid",
-            gridTemplateColumns:
-              "repeat(auto-fit,minmax(220px,1fr))",
-            gap: "18px",
-            marginBottom: "25px",
-          }}
-        >
+        {/* =====================================================
+            QUICK METRICS
+            ===================================================== */}
 
-          {/* MOOD */}
-          <div
-            style={{
-              ...cardStyle,
-              background:
-                "linear-gradient(145deg,rgba(139,92,246,0.2),rgba(17,25,48,0.8))",
-            }}
-          >
-            <div style={{ fontSize: "32px" }}>😊</div>
+        <section className="dashboard-metrics">
 
-            <p style={{ color: "#94a3b8" }}>
-              Current Mood
-            </p>
+          <div className="metric-card metric-mood">
+            <div className="metric-card-top">
+              <span className="metric-icon">😊</span>
+              <span className="metric-label">MOOD</span>
+            </div>
 
-            <h2 style={{ fontSize: "32px", margin: "8px 0" }}>
-              {latest ? `${latest.mood}/5` : "--"}
-            </h2>
+            <strong>
+              {latestCheckin
+                ? moodInfo[Number(latestCheckin.mood)]?.label || "—"
+                : "—"}
+            </strong>
 
-            <p style={{ color: "#64748b" }}>
-              Latest check-in
+            <p>
+              {latestCheckin
+                ? "Latest check-in"
+                : "No check-in yet"}
             </p>
           </div>
 
 
-          {/* STRESS */}
-          <div
-            style={{
-              ...cardStyle,
-              background:
-                "linear-gradient(145deg,rgba(245,158,11,0.14),rgba(17,25,48,0.8))",
-            }}
-          >
-            <div style={{ fontSize: "32px" }}>⚡</div>
+          <div className="metric-card metric-stress">
+            <div className="metric-card-top">
+              <span className="metric-icon">🫶</span>
+              <span className="metric-label">STRESS</span>
+            </div>
 
-            <p style={{ color: "#94a3b8" }}>
-              Stress Level
-            </p>
+            <strong>
+              {latestCheckin
+                ? levelInfo[Number(latestCheckin.stress)] || "—"
+                : "—"}
+            </strong>
 
-            <h2 style={{ fontSize: "32px", margin: "8px 0" }}>
-              {latest ? `${latest.stress}/5` : "--"}
-            </h2>
-
-            <p style={{ color: "#64748b" }}>
-              Latest check-in
+            <p>
+              {latestCheckin
+                ? "Current level"
+                : "Add a check-in"}
             </p>
           </div>
 
 
-          {/* SLEEP */}
-          <div
-            style={{
-              ...cardStyle,
-              background:
-                "linear-gradient(145deg,rgba(59,130,246,0.15),rgba(17,25,48,0.8))",
-            }}
-          >
-            <div style={{ fontSize: "32px" }}>😴</div>
+          <div className="metric-card metric-sleep">
+            <div className="metric-card-top">
+              <span className="metric-icon">🌙</span>
+              <span className="metric-label">SLEEP</span>
+            </div>
 
-            <p style={{ color: "#94a3b8" }}>
-              Sleep
-            </p>
+            <strong>
+              {latestCheckin
+                ? `${latestCheckin.sleep} hrs`
+                : "—"}
+            </strong>
 
-            <h2 style={{ fontSize: "32px", margin: "8px 0" }}>
-              {latest ? `${latest.sleep} hrs` : "--"}
-            </h2>
-
-            <p style={{ color: "#64748b" }}>
-              Latest check-in
+            <p>
+              {latestCheckin
+                ? "Last night"
+                : "Add your sleep"}
             </p>
           </div>
 
 
-          {/* WORKLOAD */}
-          <div
-            style={{
-              ...cardStyle,
-              background:
-                "linear-gradient(145deg,rgba(16,185,129,0.13),rgba(17,25,48,0.8))",
-            }}
-          >
-            <div style={{ fontSize: "32px" }}>📚</div>
+          <div className="metric-card metric-workload">
+            <div className="metric-card-top">
+              <span className="metric-icon">📚</span>
+              <span className="metric-label">WORKLOAD</span>
+            </div>
 
-            <p style={{ color: "#94a3b8" }}>
-              Academic Workload
-            </p>
+            <strong>
+              {latestCheckin
+                ? levelInfo[Number(latestCheckin.workload)] || "—"
+                : "—"}
+            </strong>
 
-            <h2 style={{ fontSize: "25px", margin: "8px 0" }}>
-              {latest ? latest.workload : "--"}
-            </h2>
-
-            <p style={{ color: "#64748b" }}>
-              Latest check-in
+            <p>
+              {latestCheckin
+                ? "Academic load"
+                : "Add a check-in"}
             </p>
           </div>
 
         </section>
 
 
-        {/* DIGITAL TWIN + AI */}
-        <section
-          style={{
-            display: "grid",
-            gridTemplateColumns:
-              "repeat(auto-fit,minmax(300px,1fr))",
-            gap: "20px",
-            marginBottom: "25px",
-          }}
-        >
+        {/* =====================================================
+            WELLBEING INSIGHT
+            ===================================================== */}
 
-          {/* DIGITAL TWIN */}
-          <div style={cardStyle}>
-            <div style={{ fontSize: "38px" }}>
-              🧠
+        <section className="dashboard-two-column">
+
+          <div className="dashboard-card wellbeing-insight-card">
+
+            <div className="dashboard-card-heading">
+              <div className="dashboard-card-icon green">
+                {wellbeingStatus.emoji}
+              </div>
+
+              <div>
+                <span className="card-kicker">
+                  YOUR WELLBEING
+                </span>
+
+                <h2>{wellbeingStatus.title}</h2>
+              </div>
             </div>
 
-            <h2>My Digital Twin</h2>
-
-            <p
-              style={{
-                color: "#94a3b8",
-                lineHeight: "1.7",
-              }}
-            >
-              Your personal wellbeing model uses your
-              recent check-ins, academic workload and
-              routine patterns.
+            <p className="dashboard-card-text">
+              {wellbeingStatus.message}
             </p>
 
-            <div
-              style={{
-                margin: "20px 0",
-                padding: "12px",
-                borderRadius: "10px",
-                background: "rgba(16,185,129,0.1)",
-                color: "#34d399",
-              }}
+            <Link
+              to="/pattern-analysis"
+              className="text-link"
             >
-              ● {latest ? "Data Updated" : "Waiting for data"}
-            </div>
-
-            <Link to="/digital-twin" style={buttonStyle}>
-              Open Digital Twin →
+              View AI Insights →
             </Link>
+
           </div>
 
 
-          {/* AI */}
-          <div
-            style={{
-              ...cardStyle,
-              background:
-                "linear-gradient(145deg,rgba(124,58,237,0.22),rgba(17,25,48,0.85))",
-            }}
-          >
-            <div style={{ fontSize: "38px" }}>
-              🤖
+          {/* =====================================================
+              DIGITAL TWIN
+              ===================================================== */}
+
+          <div className="dashboard-card digital-twin-card">
+
+            <div className="dashboard-card-heading">
+              <div className="dashboard-card-icon blue">
+                🧬
+              </div>
+
+              <div>
+                <span className="card-kicker">
+                  YOUR DIGITAL TWIN
+                </span>
+
+                <h2>Digital Wellbeing Twin</h2>
+              </div>
             </div>
 
-            <h2>AI Wellbeing Insight</h2>
-
-            <p
-              style={{
-                color: "#cbd5e1",
-                lineHeight: "1.7",
-              }}
-            >
-              Your recent wellbeing pattern is compared
-              with your personal baseline to detect
-              meaningful changes.
+            <p className="dashboard-card-text">
+              Your digital twin learns from your wellbeing
+              check-ins to help you understand your patterns.
             </p>
 
-            <Link to="/pattern" style={buttonStyle}>
-              View Pattern Analysis →
+            <Link
+              to="/digital-twin"
+              className="secondary-button"
+            >
+              Explore My Twin →
             </Link>
+
           </div>
 
         </section>
 
 
-        {/* QUICK ACTIONS */}
-        <section style={cardStyle}>
-          <h2
-            style={{
-              fontSize: "25px",
-              marginBottom: "8px",
-            }}
-          >
-            ⚡ Quick Actions
-          </h2>
+        {/* =====================================================
+            QUICK ACTIONS
+            ===================================================== */}
 
-          <p
-            style={{
-              color: "#94a3b8",
-              marginBottom: "20px",
-            }}
-          >
-            Access your wellbeing tools quickly.
-          </p>
+        <section className="dashboard-section">
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns:
-                "repeat(auto-fit,minmax(180px,1fr))",
-              gap: "12px",
-            }}
-          >
+          <div className="section-heading">
+            <div>
+              <span className="card-kicker">QUICK ACTIONS</span>
+              <h2>Take care of yourself</h2>
+            </div>
+          </div>
 
-            <Link to="/checkin" style={buttonStyle}>
-              📝 Daily Check-in
+
+          <div className="quick-action-grid">
+
+            <Link
+              to="/checkin"
+              className="quick-action-card quick-action-green"
+            >
+              <div className="quick-action-icon">
+                💚
+              </div>
+
+              <div>
+                <h3>Daily Check-in</h3>
+                <p>
+                  Tell us how you're feeling today.
+                </p>
+              </div>
+
+              <span className="quick-action-arrow">
+                →
+              </span>
             </Link>
 
-            <Link to="/history" style={buttonStyle}>
-              📋 Wellbeing History
+
+            <Link
+              to="/chart"
+              className="quick-action-card quick-action-blue"
+            >
+              <div className="quick-action-icon">
+                📊
+              </div>
+
+              <div>
+                <h3>View My Trends</h3>
+                <p>
+                  See how your wellbeing changes over time.
+                </p>
+              </div>
+
+              <span className="quick-action-arrow">
+                →
+              </span>
             </Link>
 
-            <Link to="/chart" style={buttonStyle}>
-              📈 Wellbeing Trends
-            </Link>
-
-            <Link to="/exams" style={buttonStyle}>
-              📅 Exam Calendar
-            </Link>
-
-            <Link to="/workload" style={buttonStyle}>
-              📚 Academic Workload
-            </Link>
-
-            <Link to="/digital-twin" style={buttonStyle}>
-              🧠 Digital Twin
-            </Link>
-
-            <Link to="/privacy" style={buttonStyle}>
-              🔐 Privacy & Consent
-            </Link>
 
             <Link
               to="/counsellor-connect"
-              style={buttonStyle}
+              className="quick-action-card quick-action-pink"
             >
-              🧑‍⚕️ Counsellor Support
+              <div className="quick-action-icon">
+                💬
+              </div>
+
+              <div>
+                <h3>Talk Privately</h3>
+                <p>
+                  Connect with a counsellor when you need support.
+                </p>
+              </div>
+
+              <span className="quick-action-arrow">
+                →
+              </span>
+            </Link>
+
+
+            <Link
+              to="/pattern-analysis"
+              className="quick-action-card quick-action-purple"
+            >
+              <div className="quick-action-icon">
+                ✨
+              </div>
+
+              <div>
+                <h3>AI Insights</h3>
+                <p>
+                  Understand patterns in your wellbeing data.
+                </p>
+              </div>
+
+              <span className="quick-action-arrow">
+                →
+              </span>
             </Link>
 
           </div>
+
         </section>
 
 
-        {/* FOOTER */}
-        <footer
-          style={{
-            textAlign: "center",
-            padding: "35px 10px 15px",
-            color: "#64748b",
-            fontSize: "13px",
-          }}
-        >
-          🧠 Wellbeing Twin
+        {/* =====================================================
+            2-MINUTE RESET
+            ===================================================== */}
 
-          <br />
+        <section className="reset-card">
 
-          <span>
-            Your wellbeing journey, understood through
-            personal patterns.
-          </span>
+          <div className="reset-icon">
+            🌿
+          </div>
 
-          <br />
-          <br />
+          <div className="reset-content">
+            <span className="card-kicker">
+              TAKE A SMALL BREAK
+            </span>
 
-          🔐 This system identifies wellbeing patterns
-          and does not diagnose mental health conditions.
-        </footer>
+            <h2>2-minute reset</h2>
+
+            <p>
+              Pause, breathe, stretch and give yourself
+              a small moment away from your workload.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() =>
+              alert(
+                "Take a slow breath in for 4 seconds, hold for 2 seconds, and breathe out for 6 seconds. Repeat a few times. 🌿"
+              )
+            }
+          >
+            Start Reset
+          </button>
+
+        </section>
+
+
+        {/* =====================================================
+            RECENT ACTIVITY
+            ===================================================== */}
+
+        <section className="dashboard-card recent-activity-card">
+
+          <div className="section-heading">
+            <div>
+              <span className="card-kicker">
+                YOUR ACTIVITY
+              </span>
+
+              <h2>Recent wellbeing activity</h2>
+            </div>
+
+            <Link
+              to="/history"
+              className="text-link"
+            >
+              View all →
+            </Link>
+          </div>
+
+
+          {checkins.length === 0 ? (
+            <div className="dashboard-empty-state">
+              <div>🌱</div>
+
+              <h3>No check-ins yet</h3>
+
+              <p>
+                Your wellbeing activity will appear here
+                after your first check-in.
+              </p>
+
+              <Link
+                to="/checkin"
+                className="primary-button"
+              >
+                Start My First Check-in
+              </Link>
+            </div>
+          ) : (
+            <div className="recent-checkin">
+
+              <div className="recent-checkin-icon">
+                {moodInfo[Number(latestCheckin?.mood)]?.emoji || "😊"}
+              </div>
+
+              <div className="recent-checkin-info">
+
+                <strong>
+                  {moodInfo[Number(latestCheckin?.mood)]?.label ||
+                    "Wellbeing check-in"}
+                </strong>
+
+                <span>
+                  {latestCheckin
+                    ? formatDate(latestCheckin.date)
+                    : ""}
+                </span>
+
+              </div>
+
+              <div className="recent-checkin-values">
+
+                <span>
+                  Stress:{" "}
+                  {latestCheckin?.stress || "—"}
+                </span>
+
+                <span>
+                  Sleep:{" "}
+                  {latestCheckin?.sleep || "—"} hrs
+                </span>
+
+                <span>
+                  Workload:{" "}
+                  {latestCheckin?.workload || "—"}
+                </span>
+
+              </div>
+
+            </div>
+          )}
+
+        </section>
+
+
+        {/* =====================================================
+            PRIVACY NOTE
+            ===================================================== */}
+
+        <div className="dashboard-privacy-note">
+
+          <span>🔒</span>
+
+          <div>
+            <strong>Your wellbeing data is private</strong>
+
+            <p>
+              Your check-ins are stored in this app and
+              are used to personalize your wellbeing experience.
+            </p>
+          </div>
+
+          <Link
+            to="/privacy"
+            className="text-link"
+          >
+            Privacy & Consent →
+          </Link>
+
+        </div>
 
       </div>
-    </div>
+    </DashboardLayout>
   );
 }
 

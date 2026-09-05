@@ -1,521 +1,252 @@
-import { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import DashboardLayout from "../components/DashboardLayout";
 
 function ExamCalendar() {
-  const [subject, setSubject] = useState("");
-  const [examDate, setExamDate] = useState("");
-  const [difficulty, setDifficulty] = useState("Moderate");
-
-  const [exams, setExams] = useState(() => {
-    return JSON.parse(localStorage.getItem("exams")) || [];
+  const [exams, setExams] = useState([]);
+  const [formData, setFormData] = useState({
+    subject: "",
+    date: "",
+    time: "",
   });
 
-  function handleSubmit(e) {
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem("exams") || "[]");
+    setExams(saved);
+  }, []);
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleAddExam = (e) => {
     e.preventDefault();
 
-    if (subject === "" || examDate === "") {
-      alert("Please enter subject and exam date");
+    if (!formData.subject || !formData.date) {
+      alert("Please enter the subject and exam date.");
       return;
     }
 
     const newExam = {
-      subject,
-      examDate,
-      difficulty,
+      id: Date.now(),
+      subject: formData.subject,
+      date: formData.date,
+      time: formData.time,
     };
 
-    const updatedExams = [...exams, newExam];
+    const updatedExams = [...exams, newExam].sort(
+      (a, b) => new Date(a.date) - new Date(b.date)
+    );
 
     setExams(updatedExams);
+    localStorage.setItem("exams", JSON.stringify(updatedExams));
 
-    localStorage.setItem(
-      "exams",
-      JSON.stringify(updatedExams)
-    );
+    setFormData({
+      subject: "",
+      date: "",
+      time: "",
+    });
+  };
 
-    setSubject("");
-    setExamDate("");
-    setDifficulty("Moderate");
+  const handleDelete = (id) => {
+    const updatedExams = exams.filter((exam) => exam.id !== id);
 
-    alert("Exam added successfully!");
-  }
+    setExams(updatedExams);
+    localStorage.setItem("exams", JSON.stringify(updatedExams));
+  };
 
-  function getDaysLeft(date) {
+  const formatDate = (date) => {
+    return new Date(date).toLocaleDateString("en-IN", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const getDaysLeft = (date) => {
     const today = new Date();
-    const exam = new Date(date);
+    today.setHours(0, 0, 0, 0);
 
-    const difference =
-      exam.getTime() - today.getTime();
+    const examDate = new Date(date);
+    examDate.setHours(0, 0, 0, 0);
 
-    return Math.ceil(
-      difference / (1000 * 60 * 60 * 24)
-    );
-  }
-
-  function getDifficultyColor(level) {
-    if (level === "Easy") return "#22c55e";
-    if (level === "Moderate") return "#60a5fa";
-    if (level === "Difficult") return "#f59e0b";
-    return "#ef4444";
-  }
-
-  const upcomingExams = exams
-    .filter((exam) => getDaysLeft(exam.examDate) >= 0)
-    .sort(
-      (a, b) =>
-        new Date(a.examDate) -
-        new Date(b.examDate)
-    );
-
-  const cardStyle = {
-    background: "rgba(17,25,48,0.82)",
-    border: "1px solid rgba(255,255,255,0.08)",
-    borderRadius: "22px",
-    padding: "25px",
-    boxShadow: "0 15px 40px rgba(0,0,0,0.3)",
-    backdropFilter: "blur(12px)",
+    const difference = examDate - today;
+    return Math.ceil(difference / (1000 * 60 * 60 * 24));
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background:
-          "radial-gradient(circle at 10% 10%, rgba(124,58,237,0.25), transparent 30%), radial-gradient(circle at 90% 20%, rgba(37,99,235,0.22), transparent 30%), #070b18",
-        color: "#f8fafc",
-        fontFamily: "Arial, sans-serif",
-        padding: "30px 20px",
-        boxSizing: "border-box",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: "1100px",
-          margin: "auto",
-        }}
-      >
+    <DashboardLayout>
+      <div className="exam-page">
 
-        {/* HEADER */}
-
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "20px",
-            marginBottom: "30px",
-          }}
-        >
+        {/* Header */}
+        <div className="exam-header">
           <div>
-            <p
-              style={{
-                color: "#a78bfa",
-                fontWeight: "bold",
-                fontSize: "13px",
-                marginBottom: "8px",
-              }}
-            >
-              ACADEMIC PLANNER
-            </p>
-
-            <h1
-              style={{
-                margin: 0,
-                fontSize: "38px",
-              }}
-            >
-              📅 Exam Calendar
-            </h1>
-
-            <p
-              style={{
-                color: "#94a3b8",
-                marginTop: "10px",
-              }}
-            >
-              Organize upcoming exams and help your Digital Twin
-              understand academic pressure.
+            <div className="eyebrow">ACADEMIC PLANNING</div>
+            <h1>Exam Calendar 📅</h1>
+            <p>
+              Keep track of your upcoming exams and plan your preparation.
             </p>
           </div>
 
-          <Link
-            to="/student"
-            style={{
-              textDecoration: "none",
-            }}
-          >
-            <button
-              style={{
-                padding: "11px 18px",
-                border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: "10px",
-                background: "rgba(255,255,255,0.06)",
-                color: "white",
-                cursor: "pointer",
-              }}
-            >
-              ← Dashboard
-            </button>
+          <Link to="/workload" className="btn btn-secondary">
+            View Workload
           </Link>
         </div>
 
-        {/* SUMMARY */}
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns:
-              "repeat(auto-fit,minmax(220px,1fr))",
-            gap: "18px",
-            marginBottom: "25px",
-          }}
-        >
-          <div
-            style={{
-              ...cardStyle,
-              background:
-                "linear-gradient(145deg,rgba(139,92,246,0.18),rgba(17,25,48,0.85))",
-            }}
-          >
-            <div style={{ fontSize: "32px" }}>📚</div>
-
-            <p style={{ color: "#94a3b8" }}>
-              Total Exams
-            </p>
-
-            <h2
-              style={{
-                fontSize: "32px",
-                margin: "8px 0",
-              }}
-            >
-              {exams.length}
-            </h2>
-
-            <p style={{ color: "#64748b" }}>
-              Added to calendar
-            </p>
+        {/* Add exam */}
+        <div className="card exam-add-card">
+          <div className="exam-add-heading">
+            <div className="exam-icon mint">📝</div>
+            <div>
+              <h2>Add an exam</h2>
+              <p>Add your upcoming exam to your personal calendar.</p>
+            </div>
           </div>
 
-          <div
-            style={{
-              ...cardStyle,
-              background:
-                "linear-gradient(145deg,rgba(59,130,246,0.18),rgba(17,25,48,0.85))",
-            }}
-          >
-            <div style={{ fontSize: "32px" }}>⏳</div>
-
-            <p style={{ color: "#94a3b8" }}>
-              Upcoming Exams
-            </p>
-
-            <h2
-              style={{
-                fontSize: "32px",
-                margin: "8px 0",
-              }}
-            >
-              {upcomingExams.length}
-            </h2>
-
-            <p style={{ color: "#64748b" }}>
-              Future examinations
-            </p>
-          </div>
-
-          <div
-            style={{
-              ...cardStyle,
-              background:
-                "linear-gradient(145deg,rgba(16,185,129,0.16),rgba(17,25,48,0.85))",
-            }}
-          >
-            <div style={{ fontSize: "32px" }}>🎯</div>
-
-            <p style={{ color: "#94a3b8" }}>
-              Nearest Exam
-            </p>
-
-            <h2
-              style={{
-                fontSize: "20px",
-                margin: "8px 0",
-              }}
-            >
-              {upcomingExams.length > 0
-                ? upcomingExams[0].subject
-                : "None"}
-            </h2>
-
-            <p style={{ color: "#34d399" }}>
-              {upcomingExams.length > 0
-                ? `${getDaysLeft(
-                    upcomingExams[0].examDate
-                  )} days remaining`
-                : "No upcoming exams"}
-            </p>
-          </div>
-        </div>
-
-        {/* ADD EXAM */}
-
-        <div
-          style={{
-            ...cardStyle,
-            marginBottom: "25px",
-          }}
-        >
-          <h2 style={{ marginTop: 0 }}>
-            ➕ Add Upcoming Exam
-          </h2>
-
-          <p
-            style={{
-              color: "#94a3b8",
-              marginBottom: "25px",
-            }}
-          >
-            Add your exam schedule for academic planning.
-          </p>
-
-          <form onSubmit={handleSubmit}>
-
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "repeat(auto-fit,minmax(250px,1fr))",
-                gap: "18px",
-              }}
-            >
-
-              <div>
-                <label>Subject</label>
-
-                <input
-                  type="text"
-                  placeholder="Example: Power System"
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "13px",
-                    marginTop: "8px",
-                    borderRadius: "10px",
-                    border:
-                      "1px solid rgba(255,255,255,0.1)",
-                    background: "#0d1326",
-                    color: "white",
-                    boxSizing: "border-box",
-                  }}
-                />
-              </div>
-
-              <div>
-                <label>Exam Date</label>
-
-                <input
-                  type="date"
-                  value={examDate}
-                  onChange={(e) => setExamDate(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "13px",
-                    marginTop: "8px",
-                    borderRadius: "10px",
-                    border:
-                      "1px solid rgba(255,255,255,0.1)",
-                    background: "#0d1326",
-                    color: "white",
-                    boxSizing: "border-box",
-                  }}
-                />
-              </div>
-
-              <div>
-                <label>Difficulty</label>
-
-                <select
-                  value={difficulty}
-                  onChange={(e) => setDifficulty(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "13px",
-                    marginTop: "8px",
-                    borderRadius: "10px",
-                    border:
-                      "1px solid rgba(255,255,255,0.1)",
-                    background: "#0d1326",
-                    color: "white",
-                    boxSizing: "border-box",
-                  }}
-                >
-                  <option>Easy</option>
-                  <option>Moderate</option>
-                  <option>Difficult</option>
-                  <option>Very Difficult</option>
-                </select>
-              </div>
-
+          <form className="exam-form" onSubmit={handleAddExam}>
+            <div className="exam-field">
+              <label>Subject</label>
+              <input
+                type="text"
+                name="subject"
+                value={formData.subject}
+                onChange={handleChange}
+                placeholder="e.g. Power Electronics"
+              />
             </div>
 
-            <button
-              type="submit"
-              style={{
-                marginTop: "22px",
-                padding: "13px 24px",
-                border: "none",
-                borderRadius: "10px",
-                background:
-                  "linear-gradient(135deg,#8b5cf6,#3b82f6)",
-                color: "white",
-                fontWeight: "bold",
-                cursor: "pointer",
-              }}
-            >
-              Add Exam 📅
-            </button>
+            <div className="exam-field">
+              <label>Date</label>
+              <input
+                type="date"
+                name="date"
+                value={formData.date}
+                onChange={handleChange}
+              />
+            </div>
 
+            <div className="exam-field">
+              <label>Time <span>(optional)</span></label>
+              <input
+                type="time"
+                name="time"
+                value={formData.time}
+                onChange={handleChange}
+              />
+            </div>
+
+            <button type="submit" className="btn btn-primary exam-add-button">
+              + Add Exam
+            </button>
           </form>
         </div>
 
-        {/* EXAM LIST */}
+        {/* Exam list */}
+        <div className="exam-section-header">
+          <div>
+            <h2>Upcoming exams</h2>
+            <p>Your exam schedule at a glance.</p>
+          </div>
 
-        <div style={cardStyle}>
-          <h2 style={{ marginTop: 0 }}>
-            🗓 Upcoming Exam Schedule
-          </h2>
-
-          {upcomingExams.length === 0 ? (
-            <div
-              style={{
-                textAlign: "center",
-                padding: "50px 20px",
-                color: "#64748b",
-              }}
-            >
-              <div style={{ fontSize: "55px" }}>
-                📭
-              </div>
-
-              <h3 style={{ color: "#cbd5e1" }}>
-                No upcoming exams
-              </h3>
-
-              <p>
-                Add your exams above to start planning.
-              </p>
-            </div>
-          ) : (
-            <div
-              style={{
-                display: "grid",
-                gap: "15px",
-              }}
-            >
-              {upcomingExams.map((exam, index) => {
-                const days = getDaysLeft(exam.examDate);
-
-                return (
-                  <div
-                    key={index}
-                    style={{
-                      background:
-                        "rgba(255,255,255,0.04)",
-                      border:
-                        "1px solid rgba(255,255,255,0.08)",
-                      borderRadius: "16px",
-                      padding: "20px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent:
-                          "space-between",
-                        alignItems: "center",
-                        flexWrap: "wrap",
-                        gap: "15px",
-                      }}
-                    >
-                      <div>
-                        <h3
-                          style={{
-                            margin: "0 0 8px",
-                            fontSize: "22px",
-                          }}
-                        >
-                          📘 {exam.subject}
-                        </h3>
-
-                        <p
-                          style={{
-                            color: "#94a3b8",
-                            margin: 0,
-                          }}
-                        >
-                          📅 {exam.examDate}
-                        </p>
-                      </div>
-
-                      <div
-                        style={{
-                          textAlign: "right",
-                        }}
-                      >
-                        <div
-                          style={{
-                            color:
-                              getDifficultyColor(
-                                exam.difficulty
-                              ),
-                            fontWeight: "bold",
-                            marginBottom: "8px",
-                          }}
-                        >
-                          {exam.difficulty}
-                        </div>
-
-                        <div
-                          style={{
-                            padding: "8px 14px",
-                            borderRadius: "20px",
-                            background:
-                              "rgba(139,92,246,0.12)",
-                            color: "#c4b5fd",
-                            display: "inline-block",
-                          }}
-                        >
-                          {days === 0
-                            ? "Today"
-                            : `${days} Days Left`}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          <span className="exam-count">
+            {exams.length} {exams.length === 1 ? "exam" : "exams"}
+          </span>
         </div>
 
-        {/* FOOTER */}
+        {exams.length === 0 ? (
+          <div className="card exam-empty">
+            <div className="exam-empty-icon">📚</div>
+            <h2>No exams added yet</h2>
+            <p>
+              Add your upcoming exams above to keep your academic schedule
+              organized.
+            </p>
+          </div>
+        ) : (
+          <div className="exam-list">
+            {exams.map((exam) => {
+              const daysLeft = getDaysLeft(exam.date);
 
-        <footer
-          style={{
-            textAlign: "center",
-            color: "#64748b",
-            fontSize: "13px",
-            padding: "30px",
-          }}
-        >
-          🧠 Wellbeing Twin • Academic Planning
-        </footer>
+              return (
+                <div className="card exam-item" key={exam.id}>
+
+                  <div className="exam-date-box">
+                    <span>
+                      {new Date(exam.date).toLocaleDateString("en-IN", {
+                        day: "2-digit",
+                      })}
+                    </span>
+
+                    <small>
+                      {new Date(exam.date).toLocaleDateString("en-IN", {
+                        month: "short",
+                      })}
+                    </small>
+                  </div>
+
+                  <div className="exam-info">
+                    <h3>{exam.subject}</h3>
+
+                    <p>
+                      📅 {formatDate(exam.date)}
+                      {exam.time && `  •  ⏰ ${exam.time}`}
+                    </p>
+                  </div>
+
+                  <div className="exam-actions">
+
+                    <span
+                      className={`days-badge ${
+                        daysLeft <= 3
+                          ? "days-badge-urgent"
+                          : daysLeft <= 7
+                          ? "days-badge-soon"
+                          : ""
+                      }`}
+                    >
+                      {daysLeft < 0
+                        ? "Completed"
+                        : daysLeft === 0
+                        ? "Today"
+                        : daysLeft === 1
+                        ? "1 day left"
+                        : `${daysLeft} days left`}
+                    </span>
+
+                    <button
+                      className="exam-delete"
+                      onClick={() => handleDelete(exam.id)}
+                      title="Delete exam"
+                    >
+                      ×
+                    </button>
+
+                  </div>
+
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Helpful note */}
+        <div className="card exam-note">
+          <div className="exam-note-icon">💡</div>
+          <div>
+            <h3>Plan ahead</h3>
+            <p>
+              Your exam dates can help the Digital Twin understand your
+              academic workload and provide more useful wellbeing insights.
+            </p>
+          </div>
+        </div>
 
       </div>
-    </div>
+    </DashboardLayout>
   );
 }
 

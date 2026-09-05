@@ -1,690 +1,508 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import DashboardLayout from "../components/DashboardLayout";
 
 function WellbeingHistory() {
   const [checkins, setCheckins] = useState([]);
 
   useEffect(() => {
-    const savedCheckins =
-      JSON.parse(localStorage.getItem("wellbeingCheckins")) || [];
+    try {
+      const saved = JSON.parse(
+        localStorage.getItem("wellbeingCheckins")
+      ) || [];
 
-    setCheckins(savedCheckins);
+      // Create a new array before reversing so localStorage data
+      // itself is never mutated.
+      setCheckins(
+        [...saved].sort(
+          (a, b) => new Date(b.date) - new Date(a.date)
+        )
+      );
+    } catch (error) {
+      console.error("Error loading check-in history:", error);
+      setCheckins([]);
+    }
   }, []);
 
-  const cardStyle = {
-    background: "rgba(17, 25, 48, 0.82)",
-    border: "1px solid rgba(255,255,255,0.08)",
-    borderRadius: "20px",
-    padding: "24px",
-    boxShadow: "0 15px 40px rgba(0,0,0,0.3)",
-    backdropFilter: "blur(12px)",
+  const moodLabels = {
+    1: "Good",
+    2: "Okay",
+    3: "Not great",
+    4: "Difficult",
+    5: "Very difficult",
   };
 
-  const getMoodText = (mood) => {
-    const value = Number(mood);
-
-    if (value <= 1) return "Very Low";
-    if (value === 2) return "Low";
-    if (value === 3) return "Okay";
-    if (value === 4) return "Good";
-    return "Excellent";
+  const moodEmojis = {
+    1: "😊",
+    2: "🙂",
+    3: "😐",
+    4: "😟",
+    5: "😣",
   };
 
-  const getStressText = (stress) => {
-    const value = Number(stress);
-
-    if (value <= 1) return "Very Low";
-    if (value === 2) return "Low";
-    if (value === 3) return "Moderate";
-    if (value === 4) return "High";
-    return "Very High";
+  const levelLabels = {
+    1: "Very low",
+    2: "Low",
+    3: "Moderate",
+    4: "High",
+    5: "Very high",
   };
+
+  const getDate = (date) => {
+    try {
+      return new Date(date).toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+    } catch {
+      return "Unknown date";
+    }
+  };
+
+  const getTime = (date) => {
+    try {
+      return new Date(date).toLocaleTimeString("en-IN", {
+        hour: "numeric",
+        minute: "2-digit",
+      });
+    } catch {
+      return "";
+    }
+  };
+
+  const getLevelLabel = (value) => {
+    return levelLabels[value] || "Not recorded";
+  };
+
+  const latest = checkins[0];
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background:
-          "radial-gradient(circle at 10% 10%, rgba(124,58,237,0.25), transparent 30%), radial-gradient(circle at 90% 20%, rgba(37,99,235,0.22), transparent 30%), #070b18",
-        color: "#f8fafc",
-        fontFamily: "Arial, sans-serif",
-        padding: "30px 20px",
-        boxSizing: "border-box",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: "1100px",
-          margin: "auto",
-        }}
-      >
-        {/* HEADER */}
+    <DashboardLayout>
+      <div className="history-page">
 
-        <header
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "20px",
-            marginBottom: "30px",
-          }}
-        >
-          <div>
-            <p
-              style={{
-                color: "#a78bfa",
-                fontWeight: "600",
-                fontSize: "13px",
-                marginBottom: "8px",
-              }}
-            >
-              PERSONAL WELLBEING DATA
-            </p>
+        {/* =====================================================
+            HEADER
+            ===================================================== */}
 
-            <h1
-              style={{
-                margin: 0,
-                fontSize: "38px",
-              }}
-            >
-              📋 Wellbeing History
-            </h1>
+        <section className="history-hero">
 
-            <p
-              style={{
-                color: "#94a3b8",
-                marginTop: "10px",
-              }}
-            >
-              Review your previous wellbeing check-ins and
-              understand your journey over time.
+          <div className="history-hero-text">
+            <span className="eyebrow">
+              YOUR WELLBEING JOURNEY
+            </span>
+
+            <h1>My Check-in History</h1>
+
+            <p>
+              Look back at your wellbeing journey and notice
+              how your mood, stress, sleep and workload change
+              over time.
             </p>
           </div>
 
           <Link
-            to="/student"
-            style={{
-              textDecoration: "none",
-            }}
+            to="/checkin"
+            className="primary-button history-new-button"
           >
-            <button
-              style={{
-                padding: "11px 18px",
-                border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: "10px",
-                background: "rgba(255,255,255,0.06)",
-                color: "white",
-                cursor: "pointer",
-              }}
-            >
-              ← Dashboard
-            </button>
+            + New Check-in
           </Link>
-        </header>
 
-        {/* SUMMARY */}
-
-        <section
-          style={{
-            display: "grid",
-            gridTemplateColumns:
-              "repeat(auto-fit,minmax(200px,1fr))",
-            gap: "18px",
-            marginBottom: "25px",
-          }}
-        >
-          <div
-            style={{
-              ...cardStyle,
-              background:
-                "linear-gradient(145deg,rgba(139,92,246,0.18),rgba(17,25,48,0.85))",
-            }}
-          >
-            <div style={{ fontSize: "30px" }}>📊</div>
-
-            <p style={{ color: "#94a3b8" }}>
-              Total Check-ins
-            </p>
-
-            <h2
-              style={{
-                fontSize: "32px",
-                margin: "8px 0",
-              }}
-            >
-              {checkins.length}
-            </h2>
-
-            <p style={{ color: "#64748b" }}>
-              Recorded entries
-            </p>
-          </div>
-
-          <div
-            style={{
-              ...cardStyle,
-              background:
-                "linear-gradient(145deg,rgba(16,185,129,0.14),rgba(17,25,48,0.85))",
-            }}
-          >
-            <div style={{ fontSize: "30px" }}>🧠</div>
-
-            <p style={{ color: "#94a3b8" }}>
-              Digital Twin
-            </p>
-
-            <h2
-              style={{
-                fontSize: "22px",
-                margin: "8px 0",
-              }}
-            >
-              {checkins.length > 0
-                ? "Learning"
-                : "Waiting"}
-            </h2>
-
-            <p style={{ color: "#64748b" }}>
-              Pattern collection
-            </p>
-          </div>
-
-          <div
-            style={{
-              ...cardStyle,
-              background:
-                "linear-gradient(145deg,rgba(59,130,246,0.14),rgba(17,25,48,0.85))",
-            }}
-          >
-            <div style={{ fontSize: "30px" }}>📈</div>
-
-            <p style={{ color: "#94a3b8" }}>
-              Tracking Status
-            </p>
-
-            <h2
-              style={{
-                fontSize: "22px",
-                margin: "8px 0",
-              }}
-            >
-              {checkins.length >= 2
-                ? "Active"
-                : "Getting Started"}
-            </h2>
-
-            <p style={{ color: "#64748b" }}>
-              Personal pattern
-            </p>
-          </div>
         </section>
 
-        {/* NO DATA */}
 
-        {checkins.length === 0 && (
-          <div
-            style={{
-              ...cardStyle,
-              textAlign: "center",
-              padding: "60px 30px",
-            }}
-          >
-            <div
-              style={{
-                fontSize: "60px",
-                marginBottom: "20px",
-              }}
-            >
-              📭
+        {/* =====================================================
+            EMPTY STATE
+            ===================================================== */}
+
+        {checkins.length === 0 ? (
+
+          <section className="history-empty">
+
+            <div className="history-empty-illustration">
+              🌱
             </div>
+
+            <span className="card-kicker">
+              YOUR JOURNEY STARTS HERE
+            </span>
 
             <h2>No check-ins yet</h2>
 
-            <p
-              style={{
-                color: "#94a3b8",
-                maxWidth: "550px",
-                margin: "auto",
-                lineHeight: "1.7",
-              }}
-            >
+            <p>
               Your wellbeing history will appear here after
-              you complete your first Daily Check-in.
+              you complete your first check-in.
             </p>
 
             <Link
               to="/checkin"
-              style={{
-                display: "inline-block",
-                marginTop: "25px",
-                textDecoration: "none",
-              }}
+              className="primary-button"
             >
-              <button
-                style={{
-                  padding: "13px 22px",
-                  border: "none",
-                  borderRadius: "10px",
-                  background:
-                    "linear-gradient(135deg,#8b5cf6,#3b82f6)",
-                  color: "white",
-                  fontWeight: "bold",
-                  cursor: "pointer",
-                }}
-              >
-                📝 Complete Check-in
-              </button>
+              Start Your First Check-in →
             </Link>
-          </div>
-        )}
 
-        {/* HISTORY */}
+          </section>
 
-        {checkins.length > 0 && (
-          <section>
-            <div
-              style={{
-                ...cardStyle,
-                marginBottom: "20px",
-              }}
-            >
-              <h2
-                style={{
-                  marginTop: 0,
-                  fontSize: "25px",
-                }}
-              >
-                🗓️ Your Check-in Timeline
-              </h2>
+        ) : (
 
-              <p
-                style={{
-                  color: "#94a3b8",
-                  marginBottom: 0,
-                }}
-              >
-                Your most recent wellbeing information is
-                shown first.
-              </p>
-            </div>
+          <>
 
-            {[...checkins]
-              .reverse()
-              .map((checkin, index) => {
-                const actualIndex =
-                  checkins.length - index;
+            {/* =================================================
+                SUMMARY
+                ================================================= */}
 
-                return (
-                  <div
-                    key={index}
-                    style={{
-                      ...cardStyle,
-                      marginBottom: "18px",
-                      position: "relative",
-                      overflow: "hidden",
-                    }}
+            <section className="history-summary">
+
+              <div className="history-summary-card history-summary-green">
+
+                <div className="history-summary-icon">
+                  📝
+                </div>
+
+                <div>
+                  <span>Total check-ins</span>
+                  <strong>{checkins.length}</strong>
+                </div>
+
+              </div>
+
+
+              <div className="history-summary-card history-summary-blue">
+
+                <div className="history-summary-icon">
+                  {moodEmojis[latest?.mood] || "😊"}
+                </div>
+
+                <div>
+                  <span>Latest mood</span>
+                  <strong>
+                    {moodLabels[latest?.mood] || "Not recorded"}
+                  </strong>
+                </div>
+
+              </div>
+
+
+              <div className="history-summary-card history-summary-purple">
+
+                <div className="history-summary-icon">
+                  🌙
+                </div>
+
+                <div>
+                  <span>Latest sleep</span>
+                  <strong>
+                    {latest?.sleep
+                      ? `${latest.sleep} hrs`
+                      : "Not recorded"}
+                  </strong>
+                </div>
+
+              </div>
+
+
+              <div className="history-summary-card history-summary-yellow">
+
+                <div className="history-summary-icon">
+                  📚
+                </div>
+
+                <div>
+                  <span>Latest workload</span>
+                  <strong>
+                    {getLevelLabel(latest?.workload)}
+                  </strong>
+                </div>
+
+              </div>
+
+            </section>
+
+
+            {/* =================================================
+                HISTORY SECTION
+                ================================================= */}
+
+            <section className="history-main-card">
+
+              <div className="history-main-header">
+
+                <div>
+                  <span className="card-kicker">
+                    YOUR WELLBEING
+                  </span>
+
+                  <h2>Previous Check-ins</h2>
+
+                  <p>
+                    Your most recent check-ins are shown first.
+                  </p>
+                </div>
+
+                <Link
+                  to="/chart"
+                  className="history-view-trends"
+                >
+                  View Trends →
+                </Link>
+
+              </div>
+
+
+              {/* =================================================
+                  CHECK-IN LIST
+                  ================================================= */}
+
+              <div className="history-list">
+
+                {checkins.map((checkin, index) => (
+
+                  <article
+                    className={`history-entry ${
+                      index === 0
+                        ? "history-entry-latest"
+                        : ""
+                    }`}
+                    key={checkin.id || index}
                   >
-                    {/* TOP */}
 
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        flexWrap: "wrap",
-                        gap: "10px",
-                        marginBottom: "20px",
-                      }}
-                    >
+                    {/* DATE */}
+
+                    <div className="history-entry-date">
+
+                      <div className="history-calendar-icon">
+                        📅
+                      </div>
+
                       <div>
-                        <p
-                          style={{
-                            color: "#a78bfa",
-                            fontSize: "13px",
-                            fontWeight: "bold",
-                          }}
-                        >
-                          CHECK-IN #{actualIndex}
-                        </p>
+                        <strong>
+                          {getDate(checkin.date)}
+                        </strong>
 
-                        <h2
-                          style={{
-                            margin: "5px 0",
-                          }}
-                        >
-                          {checkin.date}
-                        </h2>
+                        <span>
+                          {getTime(checkin.date)}
+                        </span>
+
+                        {index === 0 && (
+                          <small>
+                            Latest
+                          </small>
+                        )}
                       </div>
 
-                      <div
-                        style={{
-                          padding: "8px 14px",
-                          borderRadius: "20px",
-                          background:
-                            "rgba(139,92,246,0.12)",
-                          color: "#c4b5fd",
-                          fontSize: "13px",
-                        }}
-                      >
-                        📌 Recorded
-                      </div>
                     </div>
+
+
+                    {/* MOOD */}
+
+                    <div className="history-entry-mood">
+
+                      <div className="history-mood-circle">
+                        {moodEmojis[checkin.mood] || "🙂"}
+                      </div>
+
+                      <div>
+                        <span>Mood</span>
+
+                        <strong>
+                          {moodLabels[checkin.mood] ||
+                            "Not recorded"}
+                        </strong>
+                      </div>
+
+                    </div>
+
 
                     {/* METRICS */}
 
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns:
-                          "repeat(auto-fit,minmax(180px,1fr))",
-                        gap: "12px",
-                      }}
-                    >
-                      {/* MOOD */}
+                    <div className="history-entry-metrics">
 
-                      <div
-                        style={{
-                          background:
-                            "rgba(139,92,246,0.10)",
-                          borderRadius: "14px",
-                          padding: "18px",
-                        }}
-                      >
-                        <div style={{ fontSize: "28px" }}>
-                          😊
+                      <div className="history-entry-metric">
+
+                        <div className="history-metric-icon stress">
+                          🧘
                         </div>
 
-                        <p
-                          style={{
-                            color: "#94a3b8",
-                            marginTop: "8px",
-                          }}
-                        >
-                          Mood
-                        </p>
+                        <div>
+                          <span>Stress</span>
 
-                        <strong
-                          style={{
-                            fontSize: "21px",
-                          }}
-                        >
-                          {checkin.mood}/5
-                        </strong>
-
-                        <p
-                          style={{
-                            color: "#a78bfa",
-                            fontSize: "13px",
-                            marginTop: "5px",
-                          }}
-                        >
-                          {getMoodText(checkin.mood)}
-                        </p>
-                      </div>
-
-                      {/* STRESS */}
-
-                      <div
-                        style={{
-                          background:
-                            "rgba(245,158,11,0.10)",
-                          borderRadius: "14px",
-                          padding: "18px",
-                        }}
-                      >
-                        <div style={{ fontSize: "28px" }}>
-                          ⚡
+                          <strong>
+                            {getLevelLabel(checkin.stress)}
+                          </strong>
                         </div>
 
-                        <p
-                          style={{
-                            color: "#94a3b8",
-                            marginTop: "8px",
-                          }}
-                        >
-                          Stress
-                        </p>
-
-                        <strong
-                          style={{
-                            fontSize: "21px",
-                          }}
-                        >
-                          {checkin.stress}/5
-                        </strong>
-
-                        <p
-                          style={{
-                            color: "#fbbf24",
-                            fontSize: "13px",
-                            marginTop: "5px",
-                          }}
-                        >
-                          {getStressText(checkin.stress)}
-                        </p>
                       </div>
 
-                      {/* SLEEP */}
 
-                      <div
-                        style={{
-                          background:
-                            "rgba(59,130,246,0.10)",
-                          borderRadius: "14px",
-                          padding: "18px",
-                        }}
-                      >
-                        <div style={{ fontSize: "28px" }}>
-                          😴
+                      <div className="history-entry-metric">
+
+                        <div className="history-metric-icon sleep">
+                          🌙
                         </div>
 
-                        <p
-                          style={{
-                            color: "#94a3b8",
-                            marginTop: "8px",
-                          }}
-                        >
-                          Sleep
-                        </p>
+                        <div>
+                          <span>Sleep</span>
 
-                        <strong
-                          style={{
-                            fontSize: "21px",
-                          }}
-                        >
-                          {checkin.sleep} hrs
-                        </strong>
+                          <strong>
+                            {checkin.sleep
+                              ? `${checkin.sleep} hrs`
+                              : "Not recorded"}
+                          </strong>
+                        </div>
 
-                        <p
-                          style={{
-                            color: "#60a5fa",
-                            fontSize: "13px",
-                            marginTop: "5px",
-                          }}
-                        >
-                          Sleep duration
-                        </p>
                       </div>
 
-                      {/* WORKLOAD */}
 
-                      <div
-                        style={{
-                          background:
-                            "rgba(16,185,129,0.10)",
-                          borderRadius: "14px",
-                          padding: "18px",
-                        }}
-                      >
-                        <div style={{ fontSize: "28px" }}>
+                      <div className="history-entry-metric">
+
+                        <div className="history-metric-icon workload">
                           📚
                         </div>
 
-                        <p
-                          style={{
-                            color: "#94a3b8",
-                            marginTop: "8px",
-                          }}
-                        >
-                          Workload
-                        </p>
+                        <div>
+                          <span>Workload</span>
 
-                        <strong
-                          style={{
-                            fontSize: "18px",
-                          }}
-                        >
-                          {checkin.workload}
-                        </strong>
+                          <strong>
+                            {getLevelLabel(checkin.workload)}
+                          </strong>
+                        </div>
 
-                        <p
-                          style={{
-                            color: "#34d399",
-                            fontSize: "13px",
-                            marginTop: "5px",
-                          }}
-                        >
-                          Academic pressure
-                        </p>
                       </div>
+
                     </div>
+
 
                     {/* NOTE */}
 
-                    {checkin.note && (
-                      <div
-                        style={{
-                          marginTop: "18px",
-                          padding: "16px",
-                          borderRadius: "12px",
-                          background:
-                            "rgba(255,255,255,0.04)",
-                          border:
-                            "1px solid rgba(255,255,255,0.06)",
-                        }}
-                      >
-                        <p
-                          style={{
-                            color: "#a78bfa",
-                            fontWeight: "bold",
-                            marginBottom: "7px",
-                          }}
-                        >
-                          💬 Your Note
-                        </p>
+                    {checkin.notes && (
 
-                        <p
-                          style={{
-                            color: "#cbd5e1",
-                            lineHeight: "1.6",
-                          }}
-                        >
-                          {checkin.note}
-                        </p>
+                      <div className="history-entry-note">
+
+                        <span>💭</span>
+
+                        <div>
+                          <small>
+                            Your note
+                          </small>
+
+                          <p>
+                            {checkin.notes}
+                          </p>
+                        </div>
+
                       </div>
+
                     )}
-                  </div>
-                );
-              })}
-          </section>
-        )}
 
-        {/* BOTTOM ACTIONS */}
+                  </article>
 
-        {checkins.length > 0 && (
-          <div
-            style={{
-              ...cardStyle,
-              marginTop: "25px",
-              textAlign: "center",
-            }}
-          >
-            <h2>Keep your Digital Twin learning 🧠</h2>
+                ))}
 
-            <p
-              style={{
-                color: "#94a3b8",
-                lineHeight: "1.6",
-              }}
-            >
-              Regular check-ins help the system understand
-              your personal baseline and identify changes.
-            </p>
+              </div>
 
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                gap: "12px",
-                flexWrap: "wrap",
-                marginTop: "20px",
-              }}
-            >
+            </section>
+
+
+            {/* =================================================
+                UNDERSTAND YOUR PATTERNS
+                ================================================= */}
+
+            <section className="history-insight-card">
+
+              <div className="history-insight-icon">
+                ✨
+              </div>
+
+              <div className="history-insight-content">
+
+                <span className="card-kicker">
+                  UNDERSTAND YOUR PATTERNS
+                </span>
+
+                <h2>
+                  Your history can tell a story.
+                </h2>
+
+                <p>
+                  Looking at your check-ins over time can help
+                  you notice connections between your mood,
+                  stress, sleep and academic workload.
+                </p>
+
+              </div>
+
               <Link
-                to="/checkin"
-                style={{
-                  textDecoration: "none",
-                }}
+                to="/pattern-analysis"
+                className="secondary-button"
               >
-                <button
-                  style={{
-                    padding: "12px 20px",
-                    border: "none",
-                    borderRadius: "10px",
-                    background:
-                      "linear-gradient(135deg,#8b5cf6,#3b82f6)",
-                    color: "white",
-                    fontWeight: "bold",
-                    cursor: "pointer",
-                  }}
-                >
-                  📝 New Check-in
-                </button>
+                View AI Insights →
               </Link>
+
+            </section>
+
+
+            {/* =================================================
+                BOTTOM ACTIONS
+                ================================================= */}
+
+            <section className="history-bottom-actions">
 
               <Link
                 to="/chart"
-                style={{
-                  textDecoration: "none",
-                }}
+                className="secondary-button"
               >
-                <button
-                  style={{
-                    padding: "12px 20px",
-                    border:
-                      "1px solid rgba(255,255,255,0.1)",
-                    borderRadius: "10px",
-                    background:
-                      "rgba(255,255,255,0.06)",
-                    color: "white",
-                    cursor: "pointer",
-                  }}
-                >
-                  📈 View Trends
-                </button>
+                📊 View Wellbeing Trends
               </Link>
+
+              <Link
+                to="/digital-twin"
+                className="primary-button"
+              >
+                🧬 View Digital Twin
+              </Link>
+
+            </section>
+
+
+            {/* =================================================
+                PRIVACY
+                ================================================= */}
+
+            <div className="history-privacy">
+
+              <div className="history-privacy-icon">
+                🔒
+              </div>
+
+              <div>
+
+                <strong>
+                  Your history is private
+                </strong>
+
+                <p>
+                  Your check-in information is stored locally
+                  in your app and is used to show your personal
+                  wellbeing patterns.
+                </p>
+
+              </div>
+
+              <Link
+                to="/privacy"
+                className="text-link"
+              >
+                Privacy & Consent →
+              </Link>
+
             </div>
-          </div>
+
+          </>
+
         )}
 
-        {/* FOOTER */}
-
-        <footer
-          style={{
-            textAlign: "center",
-            color: "#64748b",
-            fontSize: "13px",
-            padding: "35px 10px 15px",
-          }}
-        >
-          🧠 Wellbeing Twin
-          <br />
-          Your wellbeing journey, understood through personal
-          patterns.
-        </footer>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }
 

@@ -1,473 +1,489 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import DashboardLayout from "../components/DashboardLayout";
 
 function WellbeingCheckin() {
   const navigate = useNavigate();
 
-  const [mood, setMood] = useState(3);
-  const [stress, setStress] = useState(3);
-  const [sleep, setSleep] = useState(7);
-  const [workload, setWorkload] = useState("Moderate");
-  const [note, setNote] = useState("");
+  const [formData, setFormData] = useState({
+    mood: "",
+    stress: "",
+    sleep: "",
+    workload: "",
+    notes: "",
+  });
 
-  function handleSubmit(e) {
-    e.preventDefault();
+  const moods = [
+    { value: 1, emoji: "😊", label: "Good" },
+    { value: 2, emoji: "🙂", label: "Okay" },
+    { value: 3, emoji: "😐", label: "Not great" },
+    { value: 4, emoji: "😟", label: "Difficult" },
+    { value: 5, emoji: "😣", label: "Very difficult" },
+  ];
 
-    const checkin = {
-      date: new Date().toLocaleDateString(),
-      mood: Number(mood),
-      stress: Number(stress),
-      sleep: Number(sleep),
-      workload,
-      note,
+  const levels = [
+    { value: 1, label: "Very low" },
+    { value: 2, label: "Low" },
+    { value: 3, label: "Moderate" },
+    { value: 4, label: "High" },
+    { value: 5, label: "Very high" },
+  ];
+
+  const handleMoodSelect = (value) => {
+    setFormData((previous) => ({
+      ...previous,
+      mood: value,
+    }));
+  };
+
+  const handleStressSelect = (value) => {
+    setFormData((previous) => ({
+      ...previous,
+      stress: value,
+    }));
+  };
+
+  const handleWorkloadSelect = (value) => {
+    setFormData((previous) => ({
+      ...previous,
+      workload: value,
+    }));
+  };
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+
+    // Check required fields
+    if (
+      formData.mood === "" ||
+      formData.stress === "" ||
+      formData.sleep === "" ||
+      formData.workload === ""
+    ) {
+      alert("Please complete all required fields.");
+      return;
+    }
+
+    // Get existing check-ins
+    let existingCheckins = [];
+
+    try {
+      const savedData = localStorage.getItem("wellbeingCheckins");
+
+      if (savedData) {
+        const parsedData = JSON.parse(savedData);
+
+        if (Array.isArray(parsedData)) {
+          existingCheckins = parsedData;
+        }
+      }
+    } catch (error) {
+      console.error("Error reading saved check-ins:", error);
+      existingCheckins = [];
+    }
+
+    // Create new check-in
+    const newCheckin = {
+      id: Date.now(),
+      date: new Date().toISOString(),
+      mood: Number(formData.mood),
+      stress: Number(formData.stress),
+      sleep: Number(formData.sleep),
+      workload: Number(formData.workload),
+      notes: formData.notes.trim(),
     };
 
-    const existingCheckins =
-      JSON.parse(localStorage.getItem("wellbeingCheckins")) || [];
+    // Add new check-in to existing data
+    const updatedCheckins = [
+      ...existingCheckins,
+      newCheckin,
+    ];
 
-    existingCheckins.push(checkin);
+    // Save to browser
+    try {
+      localStorage.setItem(
+        "wellbeingCheckins",
+        JSON.stringify(updatedCheckins)
+      );
 
-    localStorage.setItem(
-      "wellbeingCheckins",
-      JSON.stringify(existingCheckins)
-    );
+      // Verify that data was actually saved
+      const verification = localStorage.getItem(
+        "wellbeingCheckins"
+      );
 
-    alert("✅ Your wellbeing check-in has been saved!");
+      if (!verification) {
+        alert("Unable to save your check-in.");
+        return;
+      }
 
-    navigate("/student");
-  }
+      console.log(
+        "Check-in saved successfully:",
+        newCheckin
+      );
 
-  const cardStyle = {
-    background: "rgba(17, 25, 48, 0.82)",
-    border: "1px solid rgba(255,255,255,0.08)",
-    borderRadius: "20px",
-    padding: "25px",
-    boxShadow: "0 15px 40px rgba(0,0,0,0.3)",
-    backdropFilter: "blur(12px)",
-    marginBottom: "20px",
-  };
+      console.log(
+        "All saved check-ins:",
+        JSON.parse(verification)
+      );
 
-  const inputStyle = {
-    width: "100%",
-    padding: "13px",
-    boxSizing: "border-box",
-    borderRadius: "10px",
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(255,255,255,0.06)",
-    color: "white",
-    fontSize: "15px",
-    outline: "none",
-  };
+      alert("Your wellbeing check-in has been saved 💚");
 
-  const buttonStyle = {
-    padding: "14px 25px",
-    border: "none",
-    borderRadius: "10px",
-    background: "linear-gradient(135deg,#8b5cf6,#3b82f6)",
-    color: "white",
-    fontWeight: "bold",
-    fontSize: "15px",
-    cursor: "pointer",
+      // Go to dashboard
+      navigate("/student-dashboard");
+    } catch (error) {
+      console.error("Error saving check-in:", error);
+      alert(
+        "Something went wrong while saving your check-in."
+      );
+    }
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background:
-          "radial-gradient(circle at 10% 10%, rgba(124,58,237,0.25), transparent 30%), radial-gradient(circle at 90% 20%, rgba(37,99,235,0.22), transparent 30%), #070b18",
-        color: "#f8fafc",
-        fontFamily: "Arial, sans-serif",
-        padding: "30px 20px",
-        boxSizing: "border-box",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: "900px",
-          margin: "auto",
-        }}
-      >
-        {/* HEADER */}
+    <DashboardLayout>
+      {/* =====================================================
+          PAGE HEADER
+          ===================================================== */}
 
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "15px",
-            marginBottom: "30px",
-          }}
-        >
-          <div>
-            <div
-              style={{
-                color: "#a78bfa",
-                fontWeight: "600",
-                fontSize: "13px",
-                marginBottom: "8px",
-              }}
-            >
-              WELLBEING TRACKER
-            </div>
-
-            <h1
-              style={{
-                margin: 0,
-                fontSize: "36px",
-              }}
-            >
-              📝 Daily Check-in
-            </h1>
-
-            <p
-              style={{
-                color: "#94a3b8",
-                marginTop: "10px",
-              }}
-            >
-              Tell your Digital Twin how you are feeling today.
-            </p>
+      <div className="page-header">
+        <div>
+          <div className="eyebrow">
+            DAILY WELLBEING
           </div>
 
-          <Link
-            to="/student"
-            style={{
-              textDecoration: "none",
-            }}
-          >
-            <button
-              style={{
-                padding: "11px 18px",
-                border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: "10px",
-                background: "rgba(255,255,255,0.06)",
-                color: "white",
-                cursor: "pointer",
-              }}
-            >
-              ← Dashboard
-            </button>
-          </Link>
-        </div>
+          <h1>
+            How are you feeling today?
+          </h1>
 
-        {/* INTRO CARD */}
-
-        <div
-          style={{
-            ...cardStyle,
-            background:
-              "linear-gradient(135deg, rgba(79,70,229,0.25), rgba(37,99,235,0.12))",
-          }}
-        >
-          <h2>🧠 Why this check-in matters</h2>
-
-          <p
-            style={{
-              color: "#cbd5e1",
-              lineHeight: "1.7",
-            }}
-          >
-            Your answers help your Digital Twin understand
-            your personal wellbeing pattern over time.
+          <p>
+            Take a moment to check in with yourself.
             There are no right or wrong answers.
           </p>
         </div>
+      </div>
 
-        {/* FORM */}
+      {/* =====================================================
+          CHECK-IN FORM
+          ===================================================== */}
 
-        <form onSubmit={handleSubmit}>
-          {/* MOOD */}
+      <form
+        className="checkin-form"
+        onSubmit={handleSubmit}
+      >
+        {/* =================================================
+            01 MOOD
+            ================================================= */}
 
-          <div style={cardStyle}>
-            <div style={{ fontSize: "35px" }}>😊</div>
+        <section className="checkin-card">
+          <div className="checkin-card-header">
 
-            <h2>How is your mood today?</h2>
-
-            <p
-              style={{
-                color: "#94a3b8",
-                marginBottom: "20px",
-              }}
-            >
-              1 = Very Low &nbsp; • &nbsp; 5 = Excellent
-            </p>
-
-            <input
-              type="range"
-              min="1"
-              max="5"
-              value={mood}
-              onChange={(e) => setMood(e.target.value)}
-              style={{
-                width: "100%",
-                accentColor: "#8b5cf6",
-              }}
-            />
-
-            <div
-              style={{
-                textAlign: "center",
-                marginTop: "15px",
-                fontSize: "24px",
-                fontWeight: "bold",
-                color: "#c4b5fd",
-              }}
-            >
-              {mood} / 5
+            <div className="checkin-number">
+              01
             </div>
+
+            <div>
+              <span className="checkin-label">
+                MOOD
+              </span>
+
+              <h2>
+                How are you feeling right now?
+              </h2>
+
+              <p>
+                Choose the option that feels closest
+                to you.
+              </p>
+            </div>
+
           </div>
 
-          {/* STRESS */}
+          <div className="mood-options">
 
-          <div style={cardStyle}>
-            <div style={{ fontSize: "35px" }}>⚡</div>
+            {moods.map((item) => (
+              <button
+                key={item.value}
+                type="button"
+                className={`mood-option ${
+                  Number(formData.mood) === item.value
+                    ? "selected"
+                    : ""
+                }`}
+                onClick={() =>
+                  handleMoodSelect(item.value)
+                }
+              >
+                <span className="mood-emoji">
+                  {item.emoji}
+                </span>
 
-            <h2>How stressed do you feel?</h2>
+                <span className="mood-label">
+                  {item.label}
+                </span>
+              </button>
+            ))}
 
-            <p
-              style={{
-                color: "#94a3b8",
-                marginBottom: "20px",
-              }}
-            >
-              1 = Very Relaxed &nbsp; • &nbsp; 5 = Very Stressed
-            </p>
+          </div>
+        </section>
 
-            <input
-              type="range"
-              min="1"
-              max="5"
-              value={stress}
-              onChange={(e) => setStress(e.target.value)}
-              style={{
-                width: "100%",
-                accentColor: "#f59e0b",
-              }}
-            />
+        {/* =================================================
+            02 STRESS
+            ================================================= */}
 
-            <div
-              style={{
-                textAlign: "center",
-                marginTop: "15px",
-                fontSize: "24px",
-                fontWeight: "bold",
-                color: "#fbbf24",
-              }}
-            >
-              {stress} / 5
+        <section className="checkin-card">
+          <div className="checkin-card-header">
+
+            <div className="checkin-number">
+              02
             </div>
+
+            <div>
+              <span className="checkin-label">
+                STRESS
+              </span>
+
+              <h2>
+                How stressed do you feel?
+              </h2>
+
+              <p>
+                Think about your current academic and
+                personal pressure.
+              </p>
+            </div>
+
           </div>
 
-          {/* SLEEP */}
+          <div className="level-options">
 
-          <div style={cardStyle}>
-            <div style={{ fontSize: "35px" }}>😴</div>
+            {levels.map((item) => (
+              <button
+                key={item.value}
+                type="button"
+                className={`level-option ${
+                  Number(formData.stress) === item.value
+                    ? "selected"
+                    : ""
+                }`}
+                onClick={() =>
+                  handleStressSelect(item.value)
+                }
+              >
+                <span className="level-number">
+                  {item.value}
+                </span>
 
-            <h2>How many hours did you sleep?</h2>
+                <span>
+                  {item.label}
+                </span>
+              </button>
+            ))}
 
-            <p
-              style={{
-                color: "#94a3b8",
-                marginBottom: "15px",
-              }}
-            >
-              Enter the approximate number of hours you slept.
-            </p>
+          </div>
+        </section>
+
+        {/* =================================================
+            03 SLEEP
+            ================================================= */}
+
+        <section className="checkin-card">
+          <div className="checkin-card-header">
+
+            <div className="checkin-number">
+              03
+            </div>
+
+            <div>
+              <span className="checkin-label">
+                SLEEP
+              </span>
+
+              <h2>
+                How many hours did you sleep?
+              </h2>
+
+              <p>
+                Enter approximately how long you slept
+                last night.
+              </p>
+            </div>
+
+          </div>
+
+          <div className="sleep-input-wrapper">
 
             <input
               type="number"
               min="0"
               max="24"
               step="0.5"
-              value={sleep}
-              onChange={(e) => setSleep(e.target.value)}
-              style={inputStyle}
+              value={formData.sleep}
+              onChange={(event) =>
+                setFormData((previous) => ({
+                  ...previous,
+                  sleep: event.target.value,
+                }))
+              }
+              placeholder="e.g. 7.5"
+              className="checkin-input"
             />
 
-            <p
-              style={{
-                color: "#60a5fa",
-                marginTop: "12px",
-              }}
-            >
-              Current value: <strong>{sleep} hours</strong>
-            </p>
+            <span className="input-unit">
+              hours
+            </span>
+
           </div>
+        </section>
 
-          {/* WORKLOAD */}
+        {/* =================================================
+            04 ACADEMIC WORKLOAD
+            ================================================= */}
 
-          <div style={cardStyle}>
-            <div style={{ fontSize: "35px" }}>📚</div>
+        <section className="checkin-card">
+          <div className="checkin-card-header">
 
-            <h2>How is your academic workload?</h2>
-
-            <p
-              style={{
-                color: "#94a3b8",
-                marginBottom: "15px",
-              }}
-            >
-              Select the workload that best describes your day.
-            </p>
-
-            <select
-              value={workload}
-              onChange={(e) => setWorkload(e.target.value)}
-              style={inputStyle}
-            >
-              <option
-                value="Low"
-                style={{ color: "black" }}
-              >
-                Low
-              </option>
-
-              <option
-                value="Moderate"
-                style={{ color: "black" }}
-              >
-                Moderate
-              </option>
-
-              <option
-                value="High"
-                style={{ color: "black" }}
-              >
-                High
-              </option>
-
-              <option
-                value="Very High"
-                style={{ color: "black" }}
-              >
-                Very High
-              </option>
-            </select>
-          </div>
-
-          {/* NOTE */}
-
-          <div style={cardStyle}>
-            <div style={{ fontSize: "35px" }}>💬</div>
-
-            <h2>Anything you want to share?</h2>
-
-            <p
-              style={{
-                color: "#94a3b8",
-                marginBottom: "15px",
-              }}
-            >
-              This is optional. You can write about your day,
-              studies, sleep, stress or anything else.
-            </p>
-
-            <textarea
-              rows="5"
-              placeholder="Write something about your day..."
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              style={{
-                ...inputStyle,
-                resize: "vertical",
-                fontFamily: "Arial, sans-serif",
-              }}
-            />
-          </div>
-
-          {/* SUMMARY */}
-
-          <div
-            style={{
-              ...cardStyle,
-              background:
-                "linear-gradient(135deg, rgba(16,185,129,0.12), rgba(17,25,48,0.85))",
-            }}
-          >
-            <h2>📊 Today's Check-in</h2>
-
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "repeat(auto-fit,minmax(150px,1fr))",
-                gap: "12px",
-                marginTop: "20px",
-              }}
-            >
-              <div>
-                <p style={{ color: "#94a3b8" }}>Mood</p>
-                <strong style={{ fontSize: "20px" }}>
-                  😊 {mood}/5
-                </strong>
-              </div>
-
-              <div>
-                <p style={{ color: "#94a3b8" }}>Stress</p>
-                <strong style={{ fontSize: "20px" }}>
-                  ⚡ {stress}/5
-                </strong>
-              </div>
-
-              <div>
-                <p style={{ color: "#94a3b8" }}>Sleep</p>
-                <strong style={{ fontSize: "20px" }}>
-                  😴 {sleep} hrs
-                </strong>
-              </div>
-
-              <div>
-                <p style={{ color: "#94a3b8" }}>Workload</p>
-                <strong style={{ fontSize: "20px" }}>
-                  📚 {workload}
-                </strong>
-              </div>
+            <div className="checkin-number">
+              04
             </div>
+
+            <div>
+              <span className="checkin-label">
+                ACADEMIC WORKLOAD
+              </span>
+
+              <h2>
+                How heavy is your workload?
+              </h2>
+
+              <p>
+                Consider assignments, exams and your
+                current study load.
+              </p>
+            </div>
+
           </div>
 
-          {/* SAVE BUTTON */}
+          <div className="level-options">
 
-          <div
-            style={{
-              textAlign: "center",
-              marginTop: "25px",
-              marginBottom: "40px",
-            }}
-          >
-            <button type="submit" style={buttonStyle}>
-              Save Check-in ✓
-            </button>
+            {levels.map((item) => (
+              <button
+                key={item.value}
+                type="button"
+                className={`level-option ${
+                  Number(formData.workload) === item.value
+                    ? "selected"
+                    : ""
+                }`}
+                onClick={() =>
+                  handleWorkloadSelect(item.value)
+                }
+              >
+                <span className="level-number">
+                  {item.value}
+                </span>
 
-            <p
-              style={{
-                color: "#64748b",
-                fontSize: "13px",
-                marginTop: "15px",
-              }}
-            >
-              Your information is stored locally in this prototype.
+                <span>
+                  {item.label}
+                </span>
+              </button>
+            ))}
+
+          </div>
+        </section>
+
+        {/* =================================================
+            05 NOTES
+            ================================================= */}
+
+        <section className="checkin-card">
+          <div className="checkin-card-header">
+
+            <div className="checkin-number">
+              05
+            </div>
+
+            <div>
+              <span className="checkin-label">
+                OPTIONAL
+              </span>
+
+              <h2>
+                Anything else on your mind?
+              </h2>
+
+              <p>
+                You can add a note about how your day
+                is going.
+              </p>
+            </div>
+
+          </div>
+
+          <textarea
+            className="checkin-textarea"
+            value={formData.notes}
+            onChange={(event) =>
+              setFormData((previous) => ({
+                ...previous,
+                notes: event.target.value,
+              }))
+            }
+            placeholder="Write anything you'd like to remember..."
+            rows="5"
+          />
+
+        </section>
+
+        {/* =================================================
+            PRIVACY
+            ================================================= */}
+
+        <div className="checkin-privacy">
+
+          <span>
+            🔒
+          </span>
+
+          <div>
+            <strong>
+              Your check-in is private
+            </strong>
+
+            <p>
+              Your responses are saved in this app to
+              help you understand your wellbeing patterns
+              and personalized insights.
             </p>
           </div>
-        </form>
 
-        {/* FOOTER */}
+        </div>
 
-        <footer
-          style={{
-            textAlign: "center",
-            color: "#64748b",
-            fontSize: "13px",
-            paddingBottom: "20px",
-          }}
-        >
-          🧠 Wellbeing Twin
-          <br />
-          Understanding your personal wellbeing patterns.
-        </footer>
-      </div>
-    </div>
+        {/* =================================================
+            ACTION BUTTONS
+            ================================================= */}
+
+        <div className="checkin-actions">
+
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() =>
+              navigate("/student-dashboard")
+            }
+          >
+            Cancel
+          </button>
+
+          <button
+            type="submit"
+            className="primary-button"
+          >
+            Save Check-in →
+          </button>
+
+        </div>
+
+      </form>
+    </DashboardLayout>
   );
 }
 

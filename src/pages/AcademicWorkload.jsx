@@ -1,521 +1,272 @@
-import { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import DashboardLayout from "../components/DashboardLayout";
 
 function AcademicWorkload() {
-  const [subject, setSubject] = useState("");
-  const [hours, setHours] = useState("");
-  const [workload, setWorkload] = useState("Moderate");
-  const [tasks, setTasks] = useState("");
-
-  const [records, setRecords] = useState(() => {
-    return (
-      JSON.parse(localStorage.getItem("academicWorkload")) || []
-    );
+  const [tasks, setTasks] = useState([]);
+  const [formData, setFormData] = useState({
+    subject: "",
+    task: "",
+    hours: "",
+    deadline: "",
   });
 
-  function handleSubmit(e) {
+  useEffect(() => {
+    const savedTasks = JSON.parse(localStorage.getItem("academicWorkload")) || [];
+    setTasks(savedTasks);
+  }, []);
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const addTask = (e) => {
     e.preventDefault();
 
-    if (subject === "" || hours === "") {
-      alert("Please enter subject and study hours");
+    if (!formData.subject || !formData.task || !formData.hours) {
+      alert("Please fill subject, task and study hours.");
       return;
     }
 
-    const newRecord = {
-      subject,
-      hours: Number(hours),
-      workload,
-      tasks,
-      date: new Date().toLocaleDateString(),
+    const newTask = {
+      id: Date.now(),
+      subject: formData.subject,
+      task: formData.task,
+      hours: Number(formData.hours),
+      deadline: formData.deadline,
     };
 
-    const updatedRecords = [...records, newRecord];
+    const updatedTasks = [...tasks, newTask];
 
-    setRecords(updatedRecords);
+    setTasks(updatedTasks);
+    localStorage.setItem("academicWorkload", JSON.stringify(updatedTasks));
 
-    localStorage.setItem(
-      "academicWorkload",
-      JSON.stringify(updatedRecords)
-    );
+    setFormData({
+      subject: "",
+      task: "",
+      hours: "",
+      deadline: "",
+    });
+  };
 
-    setSubject("");
-    setHours("");
-    setWorkload("Moderate");
-    setTasks("");
+  const deleteTask = (id) => {
+    const updatedTasks = tasks.filter((task) => task.id !== id);
 
-    alert("Academic workload added successfully!");
-  }
+    setTasks(updatedTasks);
+    localStorage.setItem("academicWorkload", JSON.stringify(updatedTasks));
+  };
 
-  const totalHours = records.reduce(
-    (total, item) => total + Number(item.hours),
-    0
-  );
+  const totalHours = tasks.reduce((sum, task) => sum + Number(task.hours), 0);
+
+  const subjectCount = new Set(tasks.map((task) => task.subject)).size;
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background:
-          "radial-gradient(circle at 10% 10%, rgba(124,58,237,0.25), transparent 30%), radial-gradient(circle at 90% 20%, rgba(37,99,235,0.22), transparent 30%), #070b18",
-        color: "#f8fafc",
-        fontFamily: "Arial, sans-serif",
-        padding: "30px 20px",
-        boxSizing: "border-box",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: "1100px",
-          margin: "auto",
-        }}
-      >
+    <DashboardLayout>
+      <div className="workload-page">
 
-        {/* HEADER */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "15px",
-            marginBottom: "30px",
-          }}
-        >
+        <div className="workload-header">
           <div>
-            <div
-              style={{
-                color: "#a78bfa",
-                fontSize: "14px",
-                fontWeight: "bold",
-                letterSpacing: "1px",
-              }}
-            >
-              ACADEMIC WELLBEING
-            </div>
-
-            <h1
-              style={{
-                margin: "8px 0",
-                fontSize: "38px",
-              }}
-            >
-              📚 Academic Workload
-            </h1>
-
-            <p
-              style={{
-                color: "#94a3b8",
-                lineHeight: "1.6",
-              }}
-            >
-              Track your study workload and understand how
-              academics may affect your wellbeing.
+            <p className="eyebrow">ACADEMIC PLANNER</p>
+            <h1>Academic Workload 📚</h1>
+            <p>
+              Organize your study tasks and keep your workload balanced.
             </p>
           </div>
 
-          <Link
-            to="/student"
-            style={{
-              textDecoration: "none",
-            }}
-          >
-            <button
-              style={{
-                padding: "12px 20px",
-                border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: "10px",
-                background: "rgba(255,255,255,0.06)",
-                color: "white",
-                cursor: "pointer",
-              }}
-            >
-              ← Dashboard
-            </button>
+          <Link to="/exams" className="btn btn-secondary">
+            📅 Exam Calendar
           </Link>
         </div>
 
+        <div className="workload-summary">
 
-        {/* SUMMARY */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns:
-              "repeat(auto-fit,minmax(220px,1fr))",
-            gap: "18px",
-            marginBottom: "25px",
-          }}
-        >
-          <div
-            style={{
-              background: "rgba(17,25,48,0.78)",
-              border: "1px solid rgba(139,92,246,0.2)",
-              borderRadius: "18px",
-              padding: "22px",
-              boxShadow: "0 15px 40px rgba(0,0,0,0.25)",
-            }}
-          >
-            <div style={{ fontSize: "30px" }}>⏱️</div>
-
-            <p style={{ color: "#94a3b8" }}>
-              Total Study Hours
-            </p>
-
-            <h2
-              style={{
-                fontSize: "32px",
-                margin: "8px 0",
-              }}
-            >
-              {totalHours} hrs
-            </h2>
-
-            <p style={{ color: "#64748b" }}>
-              Recorded workload
-            </p>
+          <div className="workload-summary-card mint">
+            <span className="workload-summary-icon">📚</span>
+            <div>
+              <span>Total Tasks</span>
+              <strong>{tasks.length}</strong>
+            </div>
           </div>
 
-          <div
-            style={{
-              background: "rgba(17,25,48,0.78)",
-              border: "1px solid rgba(59,130,246,0.2)",
-              borderRadius: "18px",
-              padding: "22px",
-              boxShadow: "0 15px 40px rgba(0,0,0,0.25)",
-            }}
-          >
-            <div style={{ fontSize: "30px" }}>📖</div>
-
-            <p style={{ color: "#94a3b8" }}>
-              Subjects Recorded
-            </p>
-
-            <h2
-              style={{
-                fontSize: "32px",
-                margin: "8px 0",
-              }}
-            >
-              {records.length}
-            </h2>
-
-            <p style={{ color: "#64748b" }}>
-              Workload entries
-            </p>
+          <div className="workload-summary-card blue">
+            <span className="workload-summary-icon">⏱️</span>
+            <div>
+              <span>Total Study Hours</span>
+              <strong>{totalHours} hrs</strong>
+            </div>
           </div>
+
+          <div className="workload-summary-card purple">
+            <span className="workload-summary-icon">📖</span>
+            <div>
+              <span>Subjects</span>
+              <strong>{subjectCount}</strong>
+            </div>
+          </div>
+
         </div>
 
+        <div className="workload-layout">
 
-        {/* ADD WORKLOAD */}
-        <div
-          style={{
-            background: "rgba(17,25,48,0.82)",
-            border: "1px solid rgba(255,255,255,0.08)",
-            borderRadius: "22px",
-            padding: "30px",
-            boxShadow: "0 20px 50px rgba(0,0,0,0.3)",
-            marginBottom: "25px",
-          }}
-        >
-          <h2 style={{ marginTop: 0 }}>
-            ➕ Add Academic Workload
-          </h2>
+          <div className="card workload-form-card">
 
-          <p
-            style={{
-              color: "#94a3b8",
-              marginBottom: "25px",
-            }}
-          >
-            Enter your current academic activities.
-          </p>
-
-          <form onSubmit={handleSubmit}>
-
-            {/* SUBJECT */}
-            <label
-              style={{
-                display: "block",
-                marginBottom: "8px",
-                fontWeight: "bold",
-              }}
-            >
-              Subject
-            </label>
-
-            <input
-              type="text"
-              placeholder="Example: Power Systems"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "13px",
-                boxSizing: "border-box",
-                borderRadius: "10px",
-                border: "1px solid rgba(255,255,255,0.1)",
-                background: "#0d1326",
-                color: "white",
-                outline: "none",
-                marginBottom: "20px",
-              }}
-            />
-
-            {/* HOURS */}
-            <label
-              style={{
-                display: "block",
-                marginBottom: "8px",
-                fontWeight: "bold",
-              }}
-            >
-              Study Hours
-            </label>
-
-            <input
-              type="number"
-              min="0"
-              max="24"
-              placeholder="Example: 3"
-              value={hours}
-              onChange={(e) => setHours(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "13px",
-                boxSizing: "border-box",
-                borderRadius: "10px",
-                border: "1px solid rgba(255,255,255,0.1)",
-                background: "#0d1326",
-                color: "white",
-                outline: "none",
-                marginBottom: "20px",
-              }}
-            />
-
-            {/* WORKLOAD */}
-            <label
-              style={{
-                display: "block",
-                marginBottom: "8px",
-                fontWeight: "bold",
-              }}
-            >
-              Workload Level
-            </label>
-
-            <select
-              value={workload}
-              onChange={(e) => setWorkload(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "13px",
-                boxSizing: "border-box",
-                borderRadius: "10px",
-                border: "1px solid rgba(255,255,255,0.1)",
-                background: "#0d1326",
-                color: "white",
-                outline: "none",
-                marginBottom: "20px",
-              }}
-            >
-              <option>Low</option>
-              <option>Moderate</option>
-              <option>High</option>
-              <option>Very High</option>
-            </select>
-
-            {/* TASKS */}
-            <label
-              style={{
-                display: "block",
-                marginBottom: "8px",
-                fontWeight: "bold",
-              }}
-            >
-              Tasks / Assignments
-            </label>
-
-            <textarea
-              rows="4"
-              placeholder="Example: Assignment, practical, project work..."
-              value={tasks}
-              onChange={(e) => setTasks(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "13px",
-                boxSizing: "border-box",
-                borderRadius: "10px",
-                border: "1px solid rgba(255,255,255,0.1)",
-                background: "#0d1326",
-                color: "white",
-                outline: "none",
-                resize: "vertical",
-                marginBottom: "20px",
-              }}
-            />
-
-            <button
-              type="submit"
-              style={{
-                padding: "13px 24px",
-                border: "none",
-                borderRadius: "10px",
-                background:
-                  "linear-gradient(135deg,#8b5cf6,#3b82f6)",
-                color: "white",
-                fontWeight: "bold",
-                cursor: "pointer",
-                boxShadow:
-                  "0 8px 25px rgba(79,70,229,0.3)",
-              }}
-            >
-              ➕ Add Workload
-            </button>
-
-          </form>
-        </div>
-
-
-        {/* RECORDS */}
-        <div
-          style={{
-            background: "rgba(17,25,48,0.82)",
-            border: "1px solid rgba(255,255,255,0.08)",
-            borderRadius: "22px",
-            padding: "30px",
-            boxShadow: "0 20px 50px rgba(0,0,0,0.3)",
-          }}
-        >
-          <h2 style={{ marginTop: 0 }}>
-            📋 Workload Records
-          </h2>
-
-          {records.length === 0 ? (
-            <div
-              style={{
-                textAlign: "center",
-                padding: "45px 20px",
-                color: "#64748b",
-              }}
-            >
-              <div style={{ fontSize: "50px" }}>
-                📚
+            <div className="section-header">
+              <div>
+                <h2>Add Study Task</h2>
+                <p>Plan what you need to complete.</p>
               </div>
 
-              <h3 style={{ color: "#cbd5e1" }}>
-                No workload records yet
-              </h3>
-
-              <p>
-                Add your academic workload above to start
-                tracking your study pattern.
-              </p>
+              <span className="section-icon">✏️</span>
             </div>
-          ) : (
-            <div
-              style={{
-                display: "grid",
-                gap: "15px",
-              }}
-            >
-              {records.map((record, index) => (
-                <div
-                  key={index}
-                  style={{
-                    background: "rgba(255,255,255,0.04)",
-                    border:
-                      "1px solid rgba(255,255,255,0.07)",
-                    borderRadius: "15px",
-                    padding: "20px",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      flexWrap: "wrap",
-                      gap: "10px",
-                    }}
-                  >
-                    <div>
-                      <h3
-                        style={{
-                          margin: "0 0 6px",
-                        }}
-                      >
-                        📖 {record.subject}
-                      </h3>
 
-                      <p
-                        style={{
-                          color: "#94a3b8",
-                          margin: 0,
-                        }}
-                      >
-                        📅 {record.date}
-                      </p>
-                    </div>
+            <form onSubmit={addTask} className="workload-form">
 
-                    <div
-                      style={{
-                        padding: "8px 13px",
-                        borderRadius: "20px",
-                        background:
-                          "rgba(139,92,246,0.15)",
-                        color: "#c4b5fd",
-                      }}
-                    >
-                      {record.workload}
-                    </div>
-                  </div>
+              <div className="form-group">
+                <label>Subject</label>
+                <input
+                  type="text"
+                  name="subject"
+                  placeholder="e.g. Power Electronics"
+                  value={formData.subject}
+                  onChange={handleChange}
+                />
+              </div>
 
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "25px",
-                      flexWrap: "wrap",
-                      marginTop: "18px",
-                    }}
-                  >
-                    <span>
-                      ⏱️{" "}
-                      <strong>{record.hours}</strong>{" "}
-                      hours
-                    </span>
-                  </div>
+              <div className="form-group">
+                <label>Task</label>
+                <input
+                  type="text"
+                  name="task"
+                  placeholder="e.g. Complete assignment"
+                  value={formData.task}
+                  onChange={handleChange}
+                />
+              </div>
 
-                  {record.tasks && (
-                    <p
-                      style={{
-                        color: "#94a3b8",
-                        marginTop: "15px",
-                        lineHeight: "1.6",
-                      }}
-                    >
-                      📝 {record.tasks}
-                    </p>
-                  )}
+              <div className="form-row">
+
+                <div className="form-group">
+                  <label>Study Hours</label>
+                  <input
+                    type="number"
+                    name="hours"
+                    min="0.5"
+                    step="0.5"
+                    placeholder="2"
+                    value={formData.hours}
+                    onChange={handleChange}
+                  />
                 </div>
-              ))}
+
+                <div className="form-group">
+                  <label>Deadline</label>
+                  <input
+                    type="date"
+                    name="deadline"
+                    value={formData.deadline}
+                    onChange={handleChange}
+                  />
+                </div>
+
+              </div>
+
+              <button type="submit" className="btn btn-primary workload-add-btn">
+                + Add Task
+              </button>
+
+            </form>
+          </div>
+
+          <div className="card workload-list-card">
+
+            <div className="section-header">
+              <div>
+                <h2>Your Study Plan</h2>
+                <p>{tasks.length} task(s) planned</p>
+              </div>
+
+              <span className="section-icon">🌱</span>
             </div>
-          )}
+
+            {tasks.length === 0 ? (
+              <div className="workload-empty">
+                <div className="workload-empty-icon">📝</div>
+                <h3>No study tasks yet</h3>
+                <p>
+                  Add your subjects and study tasks to build your academic plan.
+                </p>
+              </div>
+            ) : (
+              <div className="workload-list">
+
+                {tasks.map((task) => (
+                  <div className="workload-item" key={task.id}>
+
+                    <div className="workload-item-icon">
+                      📘
+                    </div>
+
+                    <div className="workload-item-content">
+                      <div className="workload-item-top">
+                        <span className="workload-subject">
+                          {task.subject}
+                        </span>
+
+                        <button
+                          className="workload-delete"
+                          onClick={() => deleteTask(task.id)}
+                          title="Delete task"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+
+                      <h3>{task.task}</h3>
+
+                      <div className="workload-item-details">
+
+                        <span>
+                          ⏱️ {task.hours} hour
+                          {task.hours !== 1 ? "s" : ""}
+                        </span>
+
+                        {task.deadline && (
+                          <span>
+                            📅 {task.deadline}
+                          </span>
+                        )}
+
+                      </div>
+                    </div>
+
+                  </div>
+                ))}
+
+              </div>
+            )}
+
+          </div>
+
         </div>
 
+        <div className="card workload-tip">
+          <div className="workload-tip-icon">💡</div>
 
-        {/* FOOTER */}
-        <div
-          style={{
-            textAlign: "center",
-            color: "#64748b",
-            fontSize: "13px",
-            padding: "30px 10px",
-          }}
-        >
-          🧠 Wellbeing Twin • Academic Workload
+          <div>
+            <strong>Healthy study tip</strong>
+            <p>
+              Break large tasks into smaller sessions and take short breaks
+              between study periods. A balanced workload can help you stay
+              productive without feeling overwhelmed.
+            </p>
+          </div>
         </div>
 
       </div>
-    </div>
+    </DashboardLayout>
   );
 }
 

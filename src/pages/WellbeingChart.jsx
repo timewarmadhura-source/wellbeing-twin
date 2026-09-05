@@ -1,698 +1,598 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
+import DashboardLayout from "../components/DashboardLayout";
 
 function WellbeingChart() {
   const [checkins, setCheckins] = useState([]);
 
   useEffect(() => {
-    const saved =
-      JSON.parse(localStorage.getItem("wellbeingCheckins")) || [];
+    try {
+      const saved = JSON.parse(
+        localStorage.getItem("wellbeingCheckins")
+      ) || [];
 
-    setCheckins(saved);
+      setCheckins(Array.isArray(saved) ? saved : []);
+    } catch (error) {
+      console.error("Error loading wellbeing trends:", error);
+      setCheckins([]);
+    }
   }, []);
 
-  const data = checkins.map((item, index) => ({
-    day: `Day ${index + 1}`,
-    mood: Number(item.mood),
-    stress: Number(item.stress),
-    sleep: Number(item.sleep),
-  }));
+  const recentCheckins = useMemo(() => {
+    return [...checkins]
+      .sort((a, b) => new Date(a.date) - new Date(b.date))
+      .slice(-7);
+  }, [checkins]);
 
-  const cardStyle = {
-    background: "rgba(17,25,48,0.82)",
-    border: "1px solid rgba(255,255,255,0.08)",
-    borderRadius: "20px",
-    padding: "25px",
-    boxShadow: "0 15px 40px rgba(0,0,0,0.3)",
-    backdropFilter: "blur(12px)",
+  const averages = useMemo(() => {
+    if (!checkins.length) {
+      return {
+        mood: 0,
+        stress: 0,
+        sleep: 0,
+        workload: 0,
+      };
+    }
+
+    const total = checkins.length;
+
+    return {
+      mood:
+        checkins.reduce(
+          (sum, item) => sum + Number(item.mood || 0),
+          0
+        ) / total,
+
+      stress:
+        checkins.reduce(
+          (sum, item) => sum + Number(item.stress || 0),
+          0
+        ) / total,
+
+      sleep:
+        checkins.reduce(
+          (sum, item) => sum + Number(item.sleep || 0),
+          0
+        ) / total,
+
+      workload:
+        checkins.reduce(
+          (sum, item) => sum + Number(item.workload || 0),
+          0
+        ) / total,
+    };
+  }, [checkins]);
+
+  const getMoodEmoji = (value) => {
+    const emojis = {
+      1: "😊",
+      2: "🙂",
+      3: "😐",
+      4: "😟",
+      5: "😣",
+    };
+
+    return emojis[value] || "🙂";
   };
 
-  const buttonStyle = {
-    padding: "12px 20px",
-    border: "none",
-    borderRadius: "10px",
-    background: "linear-gradient(135deg,#8b5cf6,#3b82f6)",
-    color: "white",
-    fontWeight: "bold",
-    cursor: "pointer",
+  const getDateLabel = (date) => {
+    try {
+      return new Date(date).toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+      });
+    } catch {
+      return "";
+    }
   };
 
-  const average = (values) => {
-    if (values.length === 0) return 0;
+  const getTrend = (key) => {
+    if (recentCheckins.length < 2) {
+      return "Not enough data";
+    }
 
-    return (
-      values.reduce((sum, value) => sum + Number(value), 0) /
-      values.length
+    const first = Number(recentCheckins[0][key] || 0);
+    const last = Number(
+      recentCheckins[recentCheckins.length - 1][key] || 0
     );
+
+    if (last > first) return "Increasing";
+    if (last < first) return "Decreasing";
+
+    return "Stable";
   };
 
-  const averageMood = average(
-    checkins.map((item) => item.mood)
-  );
+  const getTrendIcon = (trend) => {
+    if (trend === "Increasing") return "↗";
+    if (trend === "Decreasing") return "↘";
+    if (trend === "Stable") return "→";
 
-  const averageStress = average(
-    checkins.map((item) => item.stress)
-  );
+    return "•";
+  };
 
-  const averageSleep = average(
-    checkins.map((item) => item.sleep)
-  );
+  const getMoodMessage = () => {
+    if (averages.mood <= 0) {
+      return "Complete a few check-ins to discover your mood patterns.";
+    }
 
-  const latest =
-    checkins.length > 0
-      ? checkins[checkins.length - 1]
-      : null;
+    if (averages.mood <= 2) {
+      return "Your recent mood looks positive. Keep doing the things that help you feel good.";
+    }
 
-  return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background:
-          "radial-gradient(circle at 10% 10%, rgba(124,58,237,0.25), transparent 30%), radial-gradient(circle at 90% 20%, rgba(37,99,235,0.22), transparent 30%), #070b18",
-        color: "#f8fafc",
-        fontFamily: "Arial, sans-serif",
-        padding: "30px 20px",
-        boxSizing: "border-box",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: "1150px",
-          margin: "auto",
-        }}
-      >
-        {/* HEADER */}
+    if (averages.mood <= 3) {
+      return "Your mood has been mixed recently. Regular check-ins can help you understand what affects it.";
+    }
 
-        <header
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "20px",
-            marginBottom: "30px",
-          }}
-        >
-          <div>
-            <p
-              style={{
-                color: "#a78bfa",
-                fontSize: "13px",
-                fontWeight: "bold",
-                marginBottom: "8px",
-              }}
-            >
-              PERSONAL WELLBEING ANALYTICS
-            </p>
+    return "Your recent mood may need some attention. Remember to give yourself time to rest and recharge.";
+  };
 
-            <h1
-              style={{
-                margin: 0,
-                fontSize: "38px",
-              }}
-            >
-              📈 Wellbeing Trends
-            </h1>
+  /* =========================================================
+     EMPTY STATE
+     ========================================================= */
 
-            <p
-              style={{
-                color: "#94a3b8",
-                marginTop: "10px",
-              }}
-            >
-              Visualize how your wellbeing changes over time.
-            </p>
-          </div>
+  if (!checkins.length) {
+    return (
+      <DashboardLayout>
+        <div className="trends-page">
 
-          <Link
-            to="/student"
-            style={{
-              textDecoration: "none",
-            }}
-          >
-            <button
-              style={{
-                padding: "11px 18px",
-                border:
-                  "1px solid rgba(255,255,255,0.1)",
-                borderRadius: "10px",
-                background: "rgba(255,255,255,0.06)",
-                color: "white",
-                cursor: "pointer",
-              }}
-            >
-              ← Dashboard
-            </button>
-          </Link>
-        </header>
+          <section className="trends-hero">
+            <div>
+              <span className="eyebrow">
+                YOUR WELLBEING JOURNEY
+              </span>
 
-        {/* NO DATA */}
+              <h1>My Wellbeing Trends</h1>
 
-        {checkins.length === 0 ? (
-          <div
-            style={{
-              ...cardStyle,
-              textAlign: "center",
-              padding: "70px 30px",
-            }}
-          >
-            <div
-              style={{
-                fontSize: "65px",
-                marginBottom: "20px",
-              }}
-            >
-              📊
+              <p>
+                Understand how your mood, stress, sleep and
+                workload change over time.
+              </p>
+            </div>
+          </section>
+
+          <section className="trends-empty">
+
+            <div className="trends-empty-icon">
+              📈
             </div>
 
-            <h2>No wellbeing data yet</h2>
+            <span className="card-kicker">
+              YOUR PATTERNS WILL APPEAR HERE
+            </span>
 
-            <p
-              style={{
-                color: "#94a3b8",
-                maxWidth: "550px",
-                margin: "auto",
-                lineHeight: "1.7",
-              }}
-            >
-              Complete a few Daily Check-ins and your
-              wellbeing trends will appear here.
+            <h2>No trend data yet</h2>
+
+            <p>
+              Complete a few wellbeing check-ins and your
+              personal trends will start appearing here.
             </p>
 
             <Link
               to="/checkin"
-              style={{
-                display: "inline-block",
-                marginTop: "25px",
-              }}
+              className="primary-button"
             >
-              <button style={buttonStyle}>
-                📝 Start Check-in
-              </button>
+              Start Check-in →
             </Link>
+
+          </section>
+
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  /* =========================================================
+     MAIN PAGE
+     ========================================================= */
+
+  return (
+    <DashboardLayout>
+      <div className="trends-page">
+
+        {/* =====================================================
+            HEADER
+            ===================================================== */}
+
+        <section className="trends-hero">
+
+          <div>
+            <span className="eyebrow">
+              YOUR WELLBEING JOURNEY
+            </span>
+
+            <h1>My Wellbeing Trends</h1>
+
+            <p>
+              See how your wellbeing changes over time and
+              discover patterns that may help you understand
+              yourself better.
+            </p>
           </div>
-        ) : (
-          <>
-            {/* SUMMARY CARDS */}
 
-            <section
-              style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "repeat(auto-fit,minmax(210px,1fr))",
-                gap: "18px",
-                marginBottom: "25px",
-              }}
-            >
-              <div
-                style={{
-                  ...cardStyle,
-                  background:
-                    "linear-gradient(145deg,rgba(139,92,246,0.20),rgba(17,25,48,0.85))",
-                }}
-              >
-                <div style={{ fontSize: "30px" }}>😊</div>
+          <Link
+            to="/checkin"
+            className="primary-button"
+          >
+            + New Check-in
+          </Link>
 
-                <p style={{ color: "#94a3b8" }}>
-                  Average Mood
-                </p>
+        </section>
 
-                <h2
-                  style={{
-                    fontSize: "32px",
-                    margin: "8px 0",
-                  }}
-                >
-                  {averageMood.toFixed(1)}
-                  <span
-                    style={{
-                      fontSize: "16px",
-                      color: "#64748b",
-                    }}
-                  >
-                    {" "}
-                    / 5
-                  </span>
-                </h2>
 
-                <p style={{ color: "#a78bfa" }}>
-                  Personal average
-                </p>
-              </div>
+        {/* =====================================================
+            OVERVIEW
+            ===================================================== */}
 
-              <div
-                style={{
-                  ...cardStyle,
-                  background:
-                    "linear-gradient(145deg,rgba(245,158,11,0.15),rgba(17,25,48,0.85))",
-                }}
-              >
-                <div style={{ fontSize: "30px" }}>⚡</div>
+        <section className="trends-overview-card">
 
-                <p style={{ color: "#94a3b8" }}>
-                  Average Stress
-                </p>
+          <div className="trends-overview-icon">
+            🌿
+          </div>
 
-                <h2
-                  style={{
-                    fontSize: "32px",
-                    margin: "8px 0",
-                  }}
-                >
-                  {averageStress.toFixed(1)}
-                  <span
-                    style={{
-                      fontSize: "16px",
-                      color: "#64748b",
-                    }}
-                  >
-                    {" "}
-                    / 5
-                  </span>
-                </h2>
+          <div>
 
-                <p style={{ color: "#fbbf24" }}>
-                  Personal average
-                </p>
-              </div>
+            <span className="card-kicker">
+              YOUR WELLBEING AT A GLANCE
+            </span>
 
-              <div
-                style={{
-                  ...cardStyle,
-                  background:
-                    "linear-gradient(145deg,rgba(59,130,246,0.15),rgba(17,25,48,0.85))",
-                }}
-              >
-                <div style={{ fontSize: "30px" }}>😴</div>
+            <h2>
+              Here's what your check-ins are telling you.
+            </h2>
 
-                <p style={{ color: "#94a3b8" }}>
-                  Average Sleep
-                </p>
+            <p>
+              {getMoodMessage()}
+            </p>
 
-                <h2
-                  style={{
-                    fontSize: "32px",
-                    margin: "8px 0",
-                  }}
-                >
-                  {averageSleep.toFixed(1)}
-                  <span
-                    style={{
-                      fontSize: "16px",
-                      color: "#64748b",
-                    }}
-                  >
-                    {" "}
-                    hrs
-                  </span>
-                </h2>
+          </div>
 
-                <p style={{ color: "#60a5fa" }}>
-                  Personal average
-                </p>
-              </div>
+        </section>
 
-              <div
-                style={{
-                  ...cardStyle,
-                  background:
-                    "linear-gradient(145deg,rgba(16,185,129,0.14),rgba(17,25,48,0.85))",
-                }}
-              >
-                <div style={{ fontSize: "30px" }}>📝</div>
 
-                <p style={{ color: "#94a3b8" }}>
-                  Check-ins
-                </p>
+        {/* =====================================================
+            SUMMARY CARDS
+            ===================================================== */}
 
-                <h2
-                  style={{
-                    fontSize: "32px",
-                    margin: "8px 0",
-                  }}
-                >
-                  {checkins.length}
-                </h2>
+        <section className="trend-summary">
 
-                <p style={{ color: "#34d399" }}>
-                  Data points collected
-                </p>
-              </div>
-            </section>
+          <div className="trend-summary-card trend-green">
 
-            {/* MAIN CHART */}
-
-            <section
-              style={{
-                ...cardStyle,
-                marginBottom: "25px",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                  gap: "15px",
-                  marginBottom: "25px",
-                }}
-              >
-                <div>
-                  <h2
-                    style={{
-                      margin: 0,
-                      fontSize: "25px",
-                    }}
-                  >
-                    📊 Wellbeing Overview
-                  </h2>
-
-                  <p
-                    style={{
-                      color: "#94a3b8",
-                      marginTop: "8px",
-                    }}
-                  >
-                    Mood, stress and sleep across your
-                    check-ins.
-                  </p>
-                </div>
-
-                <div
-                  style={{
-                    padding: "8px 14px",
-                    borderRadius: "20px",
-                    background:
-                      "rgba(139,92,246,0.12)",
-                    color: "#c4b5fd",
-                    fontSize: "13px",
-                  }}
-                >
-                  ● Live from check-ins
-                </div>
-              </div>
-
-              <div
-                style={{
-                  width: "100%",
-                  height: "420px",
-                }}
-              >
-                <ResponsiveContainer
-                  width="100%"
-                  height="100%"
-                >
-                  <LineChart
-                    data={data}
-                    margin={{
-                      top: 10,
-                      right: 20,
-                      left: 0,
-                      bottom: 10,
-                    }}
-                  >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="rgba(255,255,255,0.08)"
-                    />
-
-                    <XAxis
-                      dataKey="day"
-                      stroke="#94a3b8"
-                    />
-
-                    <YAxis
-                      stroke="#94a3b8"
-                      domain={[0, 10]}
-                    />
-
-                    <Tooltip
-                      contentStyle={{
-                        background: "#111930",
-                        border:
-                          "1px solid rgba(255,255,255,0.1)",
-                        borderRadius: "10px",
-                        color: "white",
-                      }}
-                    />
-
-                    <Legend />
-
-                    <Line
-                      type="monotone"
-                      dataKey="mood"
-                      name="Mood"
-                      stroke="#a78bfa"
-                      strokeWidth={3}
-                      dot={{ r: 4 }}
-                      activeDot={{ r: 7 }}
-                    />
-
-                    <Line
-                      type="monotone"
-                      dataKey="stress"
-                      name="Stress"
-                      stroke="#fbbf24"
-                      strokeWidth={3}
-                      dot={{ r: 4 }}
-                      activeDot={{ r: 7 }}
-                    />
-
-                    <Line
-                      type="monotone"
-                      dataKey="sleep"
-                      name="Sleep"
-                      stroke="#60a5fa"
-                      strokeWidth={3}
-                      dot={{ r: 4 }}
-                      activeDot={{ r: 7 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </section>
-
-            {/* LATEST INSIGHT */}
-
-            {latest && (
-              <section
-                style={{
-                  ...cardStyle,
-                  marginBottom: "25px",
-                  background:
-                    "linear-gradient(135deg,rgba(79,70,229,0.25),rgba(17,25,48,0.9))",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "20px",
-                    alignItems: "flex-start",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "60px",
-                      height: "60px",
-                      borderRadius: "18px",
-                      background:
-                        "linear-gradient(135deg,#8b5cf6,#3b82f6)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: "30px",
-                      flexShrink: 0,
-                    }}
-                  >
-                    🤖
-                  </div>
-
-                  <div>
-                    <p
-                      style={{
-                        color: "#a78bfa",
-                        fontWeight: "bold",
-                        fontSize: "13px",
-                      }}
-                    >
-                      DIGITAL TWIN INSIGHT
-                    </p>
-
-                    <h2
-                      style={{
-                        margin: "5px 0 10px",
-                      }}
-                    >
-                      Latest wellbeing snapshot
-                    </h2>
-
-                    <p
-                      style={{
-                        color: "#cbd5e1",
-                        lineHeight: "1.7",
-                      }}
-                    >
-                      Your latest check-in recorded a mood
-                      of{" "}
-                      <strong>
-                        {latest.mood}/5
-                      </strong>
-                      , stress of{" "}
-                      <strong>
-                        {latest.stress}/5
-                      </strong>{" "}
-                      and{" "}
-                      <strong>
-                        {latest.sleep} hours
-                      </strong>{" "}
-                      of sleep.
-                    </p>
-                  </div>
-                </div>
-              </section>
-            )}
-
-            {/* INFORMATION */}
-
-            <section
-              style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "repeat(auto-fit,minmax(280px,1fr))",
-                gap: "20px",
-              }}
-            >
-              <div style={cardStyle}>
-                <div style={{ fontSize: "32px" }}>🧠</div>
-
-                <h2>What does this graph show?</h2>
-
-                <p
-                  style={{
-                    color: "#94a3b8",
-                    lineHeight: "1.7",
-                  }}
-                >
-                  The graph visualizes your wellbeing data
-                  collected from your Daily Check-ins. This
-                  helps you identify changes and patterns
-                  over time.
-                </p>
-              </div>
-
-              <div style={cardStyle}>
-                <div style={{ fontSize: "32px" }}>🔍</div>
-
-                <h2>Why is tracking useful?</h2>
-
-                <p
-                  style={{
-                    color: "#94a3b8",
-                    lineHeight: "1.7",
-                  }}
-                >
-                  Regular tracking gives your Digital Twin
-                  more information about your personal
-                  baseline and helps identify meaningful
-                  changes.
-                </p>
-              </div>
-
-              <div style={cardStyle}>
-                <div style={{ fontSize: "32px" }}>🔐</div>
-
-                <h2>Your data</h2>
-
-                <p
-                  style={{
-                    color: "#94a3b8",
-                    lineHeight: "1.7",
-                  }}
-                >
-                  Your prototype currently stores wellbeing
-                  check-ins locally in your browser using
-                  localStorage.
-                </p>
-              </div>
-            </section>
-
-            {/* BOTTOM */}
-
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                gap: "12px",
-                flexWrap: "wrap",
-                marginTop: "25px",
-              }}
-            >
-              <Link
-                to="/checkin"
-                style={{
-                  textDecoration: "none",
-                }}
-              >
-                <button style={buttonStyle}>
-                  📝 Add Check-in
-                </button>
-              </Link>
-
-              <Link
-                to="/pattern"
-                style={{
-                  textDecoration: "none",
-                }}
-              >
-                <button
-                  style={{
-                    padding: "12px 20px",
-                    border:
-                      "1px solid rgba(255,255,255,0.1)",
-                    borderRadius: "10px",
-                    background:
-                      "rgba(255,255,255,0.06)",
-                    color: "white",
-                    fontWeight: "bold",
-                    cursor: "pointer",
-                  }}
-                >
-                  🧠 Pattern Analysis →
-                </button>
-              </Link>
+            <div className="trend-icon">
+              😊
             </div>
-          </>
-        )}
 
-        {/* FOOTER */}
+            <div>
+              <span>Average Mood</span>
 
-        <footer
-          style={{
-            textAlign: "center",
-            color: "#64748b",
-            fontSize: "13px",
-            padding: "35px 10px 10px",
-          }}
-        >
-          🧠 Wellbeing Twin
-          <br />
-          Personal wellbeing analytics through Digital Twin
-          technology.
-        </footer>
+              <strong>
+                {averages.mood.toFixed(1)}
+                <small>/5</small>
+              </strong>
+            </div>
+
+          </div>
+
+
+          <div className="trend-summary-card trend-pink">
+
+            <div className="trend-icon">
+              🧘
+            </div>
+
+            <div>
+              <span>Average Stress</span>
+
+              <strong>
+                {averages.stress.toFixed(1)}
+                <small>/5</small>
+              </strong>
+            </div>
+
+          </div>
+
+
+          <div className="trend-summary-card trend-blue">
+
+            <div className="trend-icon">
+              🌙
+            </div>
+
+            <div>
+              <span>Average Sleep</span>
+
+              <strong>
+                {averages.sleep.toFixed(1)}
+                <small> hrs</small>
+              </strong>
+            </div>
+
+          </div>
+
+
+          <div className="trend-summary-card trend-yellow">
+
+            <div className="trend-icon">
+              📚
+            </div>
+
+            <div>
+              <span>Average Workload</span>
+
+              <strong>
+                {averages.workload.toFixed(1)}
+                <small>/5</small>
+              </strong>
+            </div>
+
+          </div>
+
+        </section>
+
+
+        {/* =====================================================
+            MOOD TREND
+            ===================================================== */}
+
+        <section className="trend-main-card">
+
+          <div className="trend-card-header">
+
+            <div>
+              <span className="card-kicker">
+                RECENT PATTERN
+              </span>
+
+              <h2>Your Mood Journey</h2>
+
+              <p>
+                Your last {recentCheckins.length} check-ins
+                shown from oldest to newest.
+              </p>
+            </div>
+
+            <div className="trend-period">
+              Last {recentCheckins.length}
+            </div>
+
+          </div>
+
+
+          <div className="trend-chart">
+
+            {recentCheckins.map((item, index) => {
+
+              const mood = Number(item.mood || 0);
+
+              const height =
+                mood > 0
+                  ? Math.max(mood * 18, 12)
+                  : 12;
+
+              return (
+                <div
+                  className="trend-column"
+                  key={item.id || index}
+                >
+
+                  <div className="trend-value">
+                    {mood || "—"}
+                  </div>
+
+                  <div className="trend-bar-area">
+
+                    <div
+                      className="trend-bar"
+                      style={{
+                        height: `${height}%`,
+                      }}
+                    >
+                      <span>
+                        {getMoodEmoji(mood)}
+                      </span>
+                    </div>
+
+                  </div>
+
+                  <div className="trend-date">
+                    {getDateLabel(item.date)}
+                  </div>
+
+                </div>
+              );
+            })}
+
+          </div>
+
+
+          <div className="trend-legend">
+
+            <span>
+              <i className="legend-dot mood-dot"></i>
+              Mood score
+            </span>
+
+            <span>
+              1 = lowest
+            </span>
+
+            <span>
+              5 = highest
+            </span>
+
+          </div>
+
+        </section>
+
+
+        {/* =====================================================
+            WHAT IS CHANGING
+            ===================================================== */}
+
+        <section className="trend-pattern-section">
+
+          <div className="section-heading">
+
+            <div>
+              <span className="card-kicker">
+                NOTICE THE CHANGES
+              </span>
+
+              <h2>What's changing?</h2>
+
+              <p>
+                A simple look at the direction of your recent
+                wellbeing patterns.
+              </p>
+            </div>
+
+          </div>
+
+
+          <div className="trend-pattern-grid">
+
+            {[
+              ["😊", "Mood", "mood", "green"],
+              ["🧘", "Stress", "stress", "pink"],
+              ["🌙", "Sleep", "sleep", "blue"],
+              ["📚", "Workload", "workload", "yellow"],
+            ].map(([emoji, label, key, colorClass]) => {
+
+              const trend = getTrend(key);
+
+              return (
+                <div
+                  className={`trend-pattern-card ${colorClass}`}
+                  key={key}
+                >
+
+                  <div className="trend-pattern-top">
+
+                    <div className="trend-pattern-emoji">
+                      {emoji}
+                    </div>
+
+                    <div>
+                      <strong>{label}</strong>
+
+                      <small>
+                        Recent direction
+                      </small>
+                    </div>
+
+                  </div>
+
+
+                  <div className="trend-direction">
+
+                    <span>
+                      {getTrendIcon(trend)}
+                    </span>
+
+                    <strong>
+                      {trend}
+                    </strong>
+
+                  </div>
+
+                </div>
+              );
+            })}
+
+          </div>
+
+        </section>
+
+
+        {/* =====================================================
+            PERSONAL INSIGHT
+            ===================================================== */}
+
+        <section className="trend-insight">
+
+          <div className="trend-insight-icon">
+            💡
+          </div>
+
+          <div>
+
+            <span className="card-kicker">
+              PERSONAL INSIGHT
+            </span>
+
+            <h2>
+              {averages.mood <= 2
+                ? "Your overall mood looks positive."
+                : averages.stress >= 4
+                ? "Your stress level may need some attention."
+                : averages.sleep < 6
+                ? "Getting more consistent sleep may support your wellbeing."
+                : "Keep checking in to understand your wellbeing better."}
+            </h2>
+
+            <p>
+              Trends become more useful as you continue
+              completing regular check-ins.
+            </p>
+
+          </div>
+
+        </section>
+
+
+        {/* =====================================================
+            UNDERSTANDING YOUR DATA
+            ===================================================== */}
+
+        <section className="trend-understanding">
+
+          <div className="trend-understanding-icon">
+            🌱
+          </div>
+
+          <div>
+
+            <span className="card-kicker">
+              A SMALL REMINDER
+            </span>
+
+            <h2>
+              Your wellbeing isn't a number.
+            </h2>
+
+            <p>
+              These trends are simply a way to notice patterns.
+              They don't define how you're doing. Use them as
+              a gentle guide to understand yourself better.
+            </p>
+
+          </div>
+
+        </section>
+
+
+        {/* =====================================================
+            ACTIONS
+            ===================================================== */}
+
+        <div className="trend-actions">
+
+          <Link
+            to="/history"
+            className="secondary-button"
+          >
+            View Full History
+          </Link>
+
+          <Link
+            to="/digital-twin"
+            className="primary-button"
+          >
+            🧬 View Digital Twin
+          </Link>
+
+        </div>
+
       </div>
-    </div>
+    </DashboardLayout>
   );
 }
 

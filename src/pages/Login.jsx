@@ -1,251 +1,210 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
 
 function Login() {
+  const [role, setRole] = useState("student");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("student");
+  const [error, setError] = useState("");
 
-  const navigate = useNavigate();
+  const selectRole = (selectedRole) => {
+    setRole(selectedRole);
+    setError("");
+  };
 
-  function handleLogin(e) {
+  const handleLogin = (e) => {
     e.preventDefault();
 
-    if (email === "" || password === "") {
-      alert("Please enter email and password");
+    if (!email || !password) {
+      setError("Please enter your email and password.");
       return;
     }
 
+    setError("");
+
     if (role === "student") {
-      navigate("/student");
-    } else if (role === "parent") {
-      navigate("/parent");
-    } else if (role === "teacher") {
-      navigate("/teacher");
-    } else if (role === "counsellor") {
-      navigate("/counsellor");
+      window.location.replace("/student-dashboard");
+      return;
     }
-  }
+
+    if (role === "parent") {
+      window.location.replace("/parent");
+      return;
+    }
+
+    if (role === "teacher") {
+      window.location.replace("/teacher");
+      return;
+    }
+
+    if (role === "counsellor") {
+      window.location.replace("/counsellor");
+      return;
+    }
+  };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background:
-          "radial-gradient(circle at 15% 20%, rgba(124,58,237,0.25), transparent 30%), radial-gradient(circle at 85% 30%, rgba(37,99,235,0.22), transparent 30%), #070b18",
-        color: "#f8fafc",
-        fontFamily: "Arial, sans-serif",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "30px",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: "450px",
-          background: "rgba(17,25,48,0.85)",
-          border: "1px solid rgba(255,255,255,0.1)",
-          borderRadius: "24px",
-          padding: "40px",
-          boxShadow: "0 25px 70px rgba(0,0,0,0.45)",
-          backdropFilter: "blur(15px)",
-        }}
-      >
+    <div className="login-page">
+
+      <div className="login-decoration login-decoration-one"></div>
+      <div className="login-decoration login-decoration-two"></div>
+
+      <div className="login-card">
+
         {/* Logo */}
-        <div
-          style={{
-            width: "60px",
-            height: "60px",
-            borderRadius: "16px",
-            background:
-              "linear-gradient(135deg, #8b5cf6, #3b82f6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "30px",
-            margin: "0 auto 20px",
-            boxShadow:
-              "0 0 30px rgba(139,92,246,0.4)",
-          }}
-        >
-          🧠
+        <div className="login-logo">
+          🌿
         </div>
 
-        {/* Heading */}
-        <h1
-          style={{
-            textAlign: "center",
-            marginBottom: "8px",
-            fontSize: "32px",
-          }}
-        >
-          Welcome Back
+        <h1 className="login-heading">
+          Welcome to Wellbeing Twin
         </h1>
 
-        <p
-          style={{
-            textAlign: "center",
-            color: "#94a3b8",
-            marginBottom: "30px",
-          }}
-        >
-          Sign in to your Wellbeing Twin
+        <p className="login-subheading">
+          Your personal digital wellbeing companion
         </p>
 
-        {/* Form */}
-        <form onSubmit={handleLogin}>
-          {/* Email */}
-          <label
+        {/* Role */}
+        <div className="login-role-section">
+
+          <label className="login-label">
+            Login as
+          </label>
+
+          <div className="login-role-buttons">
+
+            <button
+              type="button"
+              className={`login-role-button ${
+                role === "student" ? "active" : ""
+              }`}
+              onClick={() => selectRole("student")}
+            >
+              🎓 Student
+            </button>
+
+            <button
+              type="button"
+              className={`login-role-button ${
+                role === "parent" ? "active" : ""
+              }`}
+              onClick={() => selectRole("parent")}
+            >
+              👨‍👩‍👧 Parent
+            </button>
+
+            <button
+              type="button"
+              className={`login-role-button ${
+                role === "teacher" ? "active" : ""
+              }`}
+              onClick={() => selectRole("teacher")}
+            >
+              👩‍🏫 Teacher
+            </button>
+
+            <button
+              type="button"
+              className={`login-role-button ${
+                role === "counsellor" ? "active" : ""
+              }`}
+              onClick={() => selectRole("counsellor")}
+            >
+              💚 Counsellor
+            </button>
+
+          </div>
+
+          {/* Shows currently selected role */}
+          <div
             style={{
-              display: "block",
-              marginBottom: "8px",
-              color: "#cbd5e1",
+              marginTop: "12px",
+              padding: "8px 12px",
+              borderRadius: "10px",
+              background: "#e8f7f1",
+              color: "#138a68",
+              fontSize: "14px",
               fontWeight: "600",
+              textAlign: "center",
             }}
           >
+            Selected: {role.charAt(0).toUpperCase() + role.slice(1)}
+          </div>
+
+        </div>
+
+        {/* Email */}
+        <div className="login-field">
+
+          <label className="login-label">
             Email
           </label>
 
-          <input
-            type="email"
-            placeholder="Enter your email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "14px",
-              boxSizing: "border-box",
-              borderRadius: "10px",
-              border: "1px solid rgba(255,255,255,0.12)",
-              background: "rgba(255,255,255,0.05)",
-              color: "white",
-              outline: "none",
-              marginBottom: "20px",
-              fontSize: "15px",
-            }}
-          />
+          <div className="login-input-wrapper">
 
-          {/* Password */}
-          <label
-            style={{
-              display: "block",
-              marginBottom: "8px",
-              color: "#cbd5e1",
-              fontWeight: "600",
-            }}
-          >
+            <span>✉️</span>
+
+            <input
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+
+          </div>
+
+        </div>
+
+        {/* Password */}
+        <div className="login-field">
+
+          <label className="login-label">
             Password
           </label>
 
-          <input
-            type="password"
-            placeholder="Enter your password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "14px",
-              boxSizing: "border-box",
-              borderRadius: "10px",
-              border: "1px solid rgba(255,255,255,0.12)",
-              background: "rgba(255,255,255,0.05)",
-              color: "white",
-              outline: "none",
-              marginBottom: "20px",
-              fontSize: "15px",
-            }}
-          />
+          <div className="login-input-wrapper">
 
-          {/* Role */}
-          <label
-            style={{
-              display: "block",
-              marginBottom: "8px",
-              color: "#cbd5e1",
-              fontWeight: "600",
-            }}
-          >
-            Select Role
-          </label>
+            <span>🔒</span>
 
-          <select
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "14px",
-              borderRadius: "10px",
-              border:
-                "1px solid rgba(255,255,255,0.12)",
-              background: "#111936",
-              color: "white",
-              outline: "none",
-              marginBottom: "25px",
-              fontSize: "15px",
-            }}
-          >
-            <option value="student">Student</option>
-            <option value="parent">Parent</option>
-            <option value="teacher">Teacher</option>
-            <option value="counsellor">Counsellor</option>
-          </select>
+            <input
+              type="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
 
-          {/* Login Button */}
-          <button
-            type="submit"
-            style={{
-              width: "100%",
-              padding: "15px",
-              border: "none",
-              borderRadius: "11px",
-              background:
-                "linear-gradient(135deg, #8b5cf6, #3b82f6)",
-              color: "white",
-              fontSize: "16px",
-              fontWeight: "bold",
-              cursor: "pointer",
-              boxShadow:
-                "0 10px 25px rgba(79,70,229,0.3)",
-            }}
-          >
-            Sign In →
-          </button>
-        </form>
+          </div>
 
-        {/* Back */}
-        <div
-          style={{
-            textAlign: "center",
-            marginTop: "25px",
-          }}
-        >
-          <Link
-            to="/"
-            style={{
-              color: "#a78bfa",
-              textDecoration: "none",
-            }}
-          >
-            ← Back to Home
-          </Link>
         </div>
 
-        {/* Disclaimer */}
-        <p
-          style={{
-            marginTop: "30px",
-            textAlign: "center",
-            color: "#64748b",
-            fontSize: "12px",
-            lineHeight: "1.6",
-          }}
+        {error && (
+          <p className="login-error">
+            {error}
+          </p>
+        )}
+
+        {/* Sign In */}
+        <button
+          type="button"
+          className="login-button"
+          onClick={handleLogin}
         >
-          🔐 Your wellbeing information is handled
-          with privacy in mind.
-        </p>
+          Sign In →
+        </button>
+
+        <div className="login-trust">
+          🔐 Your wellbeing data is private and secure
+        </div>
+
+        <Link
+          to="/"
+          className="login-back"
+        >
+          ← Back to home
+        </Link>
+
       </div>
+
     </div>
   );
 }
